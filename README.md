@@ -4,13 +4,13 @@ Explicit paste-to-action launcher that routes text to useful tools without autom
 
 ## Status
 
-**Milestone 1 is implemented: an offline, locally usable paste panel.** This repository now contains a TypeScript React/Vite app with deterministic mock routing, action previews, and an explicit confirm step. There are still no live Jev calls, no TypeSafe client, and no deployment.
+**Milestone 2 is implemented: decision contract, exact parsers, a replaceable provider adapter, and deterministic failure paths.** Milestone 1’s offline paste panel is still the whole UI. There are still no live Jev calls, no TypeSafe client, and no deployment.
 
-A milestone is complete only when its behaviour can be reproduced locally. Milestone 1 can: `npm install`, `npm run dev`, and `npm test`.
+A milestone is complete only when its behaviour can be reproduced locally. Milestone 2 can: `npm install`, `npm run dev`, `npm test`, and `npm run build`.
 
 ## Product
 
-One page. A large paste field. After paste, at most three large action buttons — or a clear “nothing fitting” empty state. Tap a button to see a short preview, then a single Confirm. Nothing executes without Confirm.
+One page. A large paste field. After paste, at most three large action buttons — or a clear “nothing fitting” / “couldn’t decide” empty state. Tap a button to see a short preview, then a single Confirm. Nothing executes without Confirm.
 
 Pasted text is untrusted data. Content kinds stay internal; the UI never shows a taxonomy, confidence score, or provider chrome.
 
@@ -20,9 +20,9 @@ Paste a service startup error. The interface offers a log viewer (and a docs sea
 
 ### Model boundary
 
-Semantic responsibility (mock in MS1): classify pasted text and choose suitable actions from an allowlisted catalogue.
+Semantic responsibility (mock or local in MS2): classify pasted text and choose one allowlisted action.
 
-Code remains authoritative for: exact URL/date parsing, permissions, tool parameters, confirmation screens and execution.
+Code remains authoritative for: exact URL/date/time/parameter parsing, the DecisionResult contract, permissions, confirmation, and execution. Parsed values feed the preview; they never invent a send or schedule.
 
 ## Run locally
 
@@ -43,20 +43,32 @@ python3 scripts/validate_scaffold.py
 
 `pnpm install` / `pnpm test` / `pnpm dev` also work if you prefer pnpm; this repo commits the npm lockfile (`package-lock.json`).
 
-The mock provider needs no API key. Do not set or commit `TYPESAFE_API_KEY`. Milestone 1 never reads `.env` for model access.
+The mock and local providers need no API key. Do not set or commit `TYPESAFE_API_KEY`. Milestone 2 never reads that value and never logs it.
 
-## Milestone 1 in this tree
+### Failure-path demos
 
-- Explicit paste input only (keyboard paste + Paste button).
-- Deterministic mock decision provider (offline, no network).
-- Six internal content kinds, mapped to allowlisted tool IDs. At most three suggestions are shown.
-- Preview + Confirm before a local execution stub (toast / on-page preview). No email, calendar write, or external API.
-- `examples/cases.json` paths: clarify shows fewer buttons; abstain shows the empty state plus a manual list of safe tools.
-- Domain tests for routing and UI smoke tests for the paste panel.
+The page stays one paste field. These query flags only wrap the offline adapter for local checks:
+
+```
+http://localhost:5173/?scenario=timeout
+http://localhost:5173/?scenario=malformed
+http://localhost:5173/?scenario=stale
+http://localhost:5173/?provider=local
+```
+
+On timeout, malformed output, stale `stateVersion`, or an invalid contract, the text stays editable and the page offers the same safe manual tools.
+
+## Milestone 2 in this tree
+
+- Exact local parsers for URLs, dates/times, and emails, separate from classification.
+- Hard allowlisted action IDs. `DecisionResult` is validated in full: matching `requestId` / `stateVersion`, select requires an offered allowlisted ID, clarify/abstain carry no action.
+- Replaceable adapter: `mock` (default), `local` (same offline heuristic), and a `jev` stub that is not configured. No live TypeSafe/Jev/SemIf calls.
+- Fixture paths in `examples/cases.json` for select, clarify, abstain, empty, injection, timeout, malformed, and stale state.
+- Provider failures leave the field editable and show a manual safe-tool list. They are not reported as semantic abstains.
+- Execution gate rechecks state immediately before the local stub. Confirm is still required. The stub does not email, write a calendar, or call an external API.
 
 ## Later milestones
 
-- **MS2** — exact parsers as a harder contract, allowlisted action IDs, provider adapter, and the remaining failure paths (malformed output, timeout, stale state beyond the local gate).
 - **MS3** — optional live Jev adapter behind a server-side boundary, measured comparison, local provider still selectable.
 
 See [docs/MVP.md](docs/MVP.md).
@@ -79,7 +91,7 @@ Web paste is the prototype. Later desktop surfaces — a Share Sheet, Mac Servic
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Domain routing, execution gate, UI smoke |
+| `npm test` | Parsers, contract validation, routing, failure paths, execution gate, UI smoke |
 | `python3 scripts/validate_scaffold.py` | Fixture structure and local documentation links |
 
 These checks do **not** measure live-model accuracy or contact TypeSafe.

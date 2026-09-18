@@ -11,6 +11,8 @@ export type ContentKind = (typeof CONTENT_KINDS)[number];
 
 export type DecisionStatus = "select" | "clarify" | "abstain";
 
+export type DecisionProviderId = "mock" | "local" | "jev";
+
 export const TOOL_IDS = [
   "open_log_viewer",
   "search_docs",
@@ -30,9 +32,12 @@ export type ToolDefinition = {
   safeFallback: boolean;
 };
 
+/** Exact tokens extracted from text. Parsers never invent send/schedule fields. */
 export type ParsedFacts = {
   urls: string[];
   dateHints: string[];
+  times: string[];
+  emails: string[];
 };
 
 export type DecisionRequest = {
@@ -48,7 +53,8 @@ export type DecisionResult = {
   stateVersion: string;
   status: DecisionStatus;
   actionId: string | null;
-  provider: "mock" | "local" | "jev";
+  provider: DecisionProviderId;
+  confidence?: number;
 };
 
 export type ActionSuggestion = {
@@ -56,17 +62,27 @@ export type ActionSuggestion = {
   label: string;
 };
 
+export type OperationalFailure =
+  | "timeout"
+  | "malformed"
+  | "stale"
+  | "invalid_contract"
+  | "not_configured";
+
+export type RouteStatus = DecisionStatus | "failed";
+
 export type RouteOutcome = {
   requestId: string;
   stateVersion: string;
-  status: DecisionStatus;
+  status: RouteStatus;
   /** Internal only — never render this in the UI. */
   contentKind: ContentKind | null;
   suggestions: ActionSuggestion[];
   fallbackTools: ActionSuggestion[];
   parsed: ParsedFacts;
   primaryActionId: string | null;
-  decision: DecisionResult;
+  decision: DecisionResult | null;
+  failure: OperationalFailure | null;
 };
 
 export type ActionPreview = {
@@ -84,3 +100,5 @@ export type ExecutionResult = {
 };
 
 export const MAX_SUGGESTIONS = 3;
+
+export const PROVIDER_TIMEOUT_MS = 800;

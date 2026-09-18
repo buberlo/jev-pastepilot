@@ -14,10 +14,17 @@ export function buildPreview(
   if (parsed.urls.length > 0) {
     facts.push(...parsed.urls.map((url) => `Link: ${url}`));
   }
+  if (parsed.emails.length > 0) {
+    facts.push(...parsed.emails.map((email) => `Email: ${email}`));
+  }
   if (toolId === "draft_event") {
     if (parsed.dateHints.length > 0) {
       facts.push(...parsed.dateHints.map((hint) => `Date hint: ${hint}`));
-    } else {
+    }
+    if (parsed.times.length > 0) {
+      facts.push(...parsed.times.map((time) => `Time: ${time}`));
+    }
+    if (parsed.dateHints.length === 0 && parsed.times.length === 0) {
       facts.push("No date found — draft without a time.");
     }
   }

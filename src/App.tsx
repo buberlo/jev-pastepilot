@@ -4,6 +4,7 @@ import {
   buildPreview,
   confirmExecution,
   newStateVersion,
+  readDemoOptions,
   routePaste,
   type ActionPreview,
   type ActionSuggestion,
@@ -21,19 +22,35 @@ export default function App() {
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [pasteError, setPasteError] = useState<string | null>(null);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
+  const routeGen = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
-  function applyText(next: string, routed: RouteOutcome) {
-    setText(next);
-    setStateVersion(routed.stateVersion);
+  async function routeAndApply(next: string, version: string) {
+    const gen = ++routeGen.current;
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    const demo = readDemoOptions(window.location.search);
+    const routed = await routePaste(next, {
+      stateVersion: version,
+      provider: demo.provider,
+      scenario: demo.scenario,
+      signal: ac.signal,
+    });
+    if (gen !== routeGen.current) {
+      return;
+    }
     setOutcome(routed);
-    setPreview(null);
-    setResult(null);
-    setPasteError(null);
   }
 
   function handleTextChange(next: string) {
     const version = newStateVersion();
-    applyText(next, routePaste(next, { stateVersion: version }));
+    setText(next);
+    setStateVersion(version);
+    setPreview(null);
+    setResult(null);
+    setPasteError(null);
+    void routeAndApply(next, version);
   }
 
   function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
@@ -58,9 +75,6 @@ export default function App() {
   }
 
   function openPreview(suggestion: ActionSuggestion) {
-    if (!outcome) {
-      return;
-    }
     setPreview(buildPreview(suggestion.toolId, text, stateVersion));
     setResult(null);
   }
@@ -83,12 +97,17 @@ export default function App() {
   const showRouted = outcome !== null;
   const showSuggestions =
     showRouted && preview === null && !result?.ok && outcome.suggestions.length > 0;
-  const showEmpty =
+  const showManual =
     showRouted &&
     preview === null &&
     !result?.ok &&
-    outcome.status === "abstain" &&
-    outcome.suggestions.length === 0;
+    (outcome.status === "abstain" || outcome.status === "failed");
+  const emptyCopy =
+    outcome?.status === "failed"
+      ? outcome.failure === "timeout"
+        ? "Couldn't decide in time."
+        : "Couldn't decide."
+      : "Nothing fitting.";
 
   return (
     <main className="page">
@@ -132,9 +151,9 @@ export default function App() {
         </section>
       ) : null}
 
-      {showEmpty ? (
-        <section className="empty" aria-label="Nothing fitting">
-          <p>Nothing fitting.</p>
+      {showManual ? (
+        <section className="empty" aria-label={emptyCopy}>
+          <p>{emptyCopy}</p>
           {outcome.fallbackTools.length > 0 ? (
             <div className="fallback-list">
               <p>Pick a safe tool instead:</p>

@@ -85,6 +85,54 @@
         "action_id": null
       },
       "notes": ""
+    },
+    {
+      "id": "timeout",
+      "input": "Service failed: connection refused on the database socket.",
+      "state": {},
+      "scenario": "timeout",
+      "available_actions": [
+        "open_log_viewer",
+        "capture_task"
+      ],
+      "expected": {
+        "status": "failed",
+        "action_id": null,
+        "failure": "timeout"
+      },
+      "notes": "Operational timeout. Not a semantic abstain."
+    },
+    {
+      "id": "malformed",
+      "input": "An app that lets me assemble virtual model kits.",
+      "state": {},
+      "scenario": "malformed",
+      "available_actions": [
+        "capture_idea",
+        "save_note"
+      ],
+      "expected": {
+        "status": "failed",
+        "action_id": null,
+        "failure": "malformed"
+      },
+      "notes": "Malformed provider payload. Not a semantic decision."
+    },
+    {
+      "id": "stale",
+      "input": "Lass uns morgen über das Projekt sprechen.",
+      "state": {},
+      "scenario": "stale",
+      "available_actions": [
+        "draft_event",
+        "capture_task"
+      ],
+      "expected": {
+        "status": "failed",
+        "action_id": null,
+        "failure": "stale"
+      },
+      "notes": "Provider stateVersion does not match the request."
     }
   ]
 }

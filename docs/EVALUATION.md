@@ -5,8 +5,8 @@ The included JSON cases are **hand-labelled synthetic acceptance examples**, not
 ## Layers
 
 1. The current `scripts/validate_scaffold.py` checks example structure and local documentation links only.
-2. Domain tests in `src/test/routing.test.ts` enforce the deterministic acceptance criteria in [MVP](MVP.md), including the labelled cases in `examples/cases.json`. UI smoke lives in `src/test/App.test.tsx`.
-3. Provider tests compare held-out inputs with expected semantic results; preserve both German and English examples and add real user phrasing only with appropriate data handling.
+2. Domain tests in `src/test/` enforce the deterministic acceptance criteria in [MVP](MVP.md), including the labelled cases in `examples/cases.json`. Coverage includes parsers, DecisionResult validation, routing, and operational failure paths. UI smoke lives in `src/test/App.test.tsx`.
+3. Provider tests compare held-out inputs with expected semantic results; preserve both German and English examples and add real user phrasing only with appropriate data handling. Milestone 2 still uses the offline mock/local adapters only.
 4. End-to-end tests cover timeout, malformed output, stale versions, ineligible candidates and the manual/offline path.
 
 ## Measurements
@@ -23,4 +23,4 @@ Collect p50 and p95 wall-clock latency at the application boundary, request/toke
 - Provider errors leave the text editable and allow manual tool selection.
 - No clipboard content is retained in logs by default.
 
-Choose quantitative thresholds after a labelled pilot rather than inventing a universal confidence cutoff. Do not claim production readiness from the six seed cases. Milestone 1 records deterministic mock-test coverage only; no live-provider evaluation is claimed.
+Choose quantitative thresholds after a labelled pilot rather than inventing a universal confidence cutoff. Do not claim production readiness from the seed cases. Milestone 2 records deterministic mock/local-test coverage only; no live-provider evaluation is claimed.
