@@ -9,7 +9,7 @@
   --accent-ink: #f4f1ea;
   --warn: #6b3b1f;
   --shadow: 0 10px 30px rgb(27 26 23 / 0.08);
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Times New Roman", serif;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   line-height: 1.45;
   font-weight: 400;
   color: var(--ink);

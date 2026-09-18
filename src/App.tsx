@@ -81,10 +81,12 @@ export default function App() {
   }
 
   const showRouted = outcome !== null;
-  const showSuggestions = showRouted && preview === null && outcome.suggestions.length > 0;
+  const showSuggestions =
+    showRouted && preview === null && !result?.ok && outcome.suggestions.length > 0;
   const showEmpty =
     showRouted &&
     preview === null &&
+    !result?.ok &&
     outcome.status === "abstain" &&
     outcome.suggestions.length === 0;
 

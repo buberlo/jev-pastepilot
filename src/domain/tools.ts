@@ -22,7 +22,7 @@ export const TOOLS: Record<ToolId, ToolDefinition> = {
   draft_event: {
     id: "draft_event",
     label: "Draft event",
-    description: "Draft a calendar event locally. Nothing is scheduled.",
+    description: "Draft a calendar event locally.",
     safeFallback: false,
   },
   capture_task: {
