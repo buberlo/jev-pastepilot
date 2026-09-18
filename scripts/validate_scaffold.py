@@ -32,8 +32,9 @@ def validate() -> int:
             errors.append(f'{cid}: expected action was not offered')
         if expected['status'] != 'select' and expected['action_id'] is not None:
             errors.append(f'{cid}: non-selection must not contain an action ID')
+    skip_parts = {'.git', 'node_modules', 'dist', 'coverage'}
     for page in ROOT.rglob('*.md'):
-        if '.git' in page.parts:
+        if skip_parts.intersection(page.parts):
             continue
         for target in re.findall(r'\[[^\]]+\]\(([^)]+)\)', page.read_text(encoding='utf-8')):
             if '://' in target or target.startswith('#') or target.startswith('mailto:'):

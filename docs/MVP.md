@@ -2,9 +2,16 @@
 
 ## Milestone 1 — Offline vertical slice
 
-Build the paste panel and six categories with deterministic mock routing and visible action previews.
+**Done in this repository.** The paste panel and six internal content kinds use deterministic mock routing and visible action previews. Domain tests and UI smoke tests cover the labelled cases in `examples/cases.json`. Local run commands are in the README.
 
-Deliver an actually usable slice, tests of its domain behaviour and exact local run instructions. Do not label a mock as a live Jev integration.
+This is a mock. It is not a live Jev integration.
+
+Implemented behaviour:
+
+- Explicit paste only (Ctrl/Cmd+V and a Paste button). No native clipboard watcher.
+- Offline mock provider with no API key.
+- At most three action buttons, or a “nothing fitting” empty state with a manual fallback list.
+- Preview and a single Confirm before a local execution stub. Confirm never sends email, writes a calendar, or calls an external API.
 
 ## Milestone 2 — Decision contract and failure paths
 
@@ -32,4 +39,4 @@ Passive clipboard surveillance, autonomous browsing, automatic email sending and
 
 ## Delivery boundary
 
-This file defines intended future work. The current repository does not claim that any milestone is implemented. A milestone is complete only when its behaviour can be reproduced locally and its result is recorded in the README.
+Milestone 1 is implemented and can be reproduced with the README commands. Later milestones remain future work until their behaviour can be reproduced locally and recorded in the README.

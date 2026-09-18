@@ -10,4 +10,4 @@
 
 ## Contextual references
 
-Use `docs/MVP.md` when implementing product behaviour, `docs/ARCHITECTURE.md` when changing decision boundaries, and `docs/EVALUATION.md` when adding evaluation coverage. The current executable check is `python scripts/validate_scaffold.py`; it only checks the specification scaffold.
+Use `docs/MVP.md` when implementing product behaviour, `docs/ARCHITECTURE.md` when changing decision boundaries, and `docs/EVALUATION.md` when adding evaluation coverage. Current local checks: `python3 scripts/validate_scaffold.py` (specification scaffold) and `npm test` (domain + UI smoke). Do not add GitHub Actions.
