@@ -2,9 +2,9 @@
   "name": "jev-pastepilot",
   "title": "PastePilot",
   "description": "Explicit paste-to-action launcher that routes text to useful tools without automatic side effects.",
-  "status": "specification-scaffold",
+  "status": "milestone-1",
   "intended_owner": "buberlo",
   "intended_visibility": "private",
-  "implementation_exists": false,
+  "implementation_exists": true,
   "live_provider_tested": false
 }
