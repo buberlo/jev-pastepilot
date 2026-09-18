@@ -1,83 +1,75 @@
 import { classify } from "./classify";
-import { isToolId, toolLabel, TOOLS } from "./tools";
-import {
-  MAX_SUGGESTIONS,
-  type ContentKind,
-  type DecisionRequest,
-  type DecisionResult,
-  type ToolId,
+import { CLARIFY_TOOLS, isToolId, KIND_TOOLS, offeredToolIds, toolLabel, TOOLS } from "./tools";
+import type {
+  ContentKind,
+  DecisionProviderId,
+  DecisionRequest,
+  DecisionResult,
+  DecisionStatus,
+  ToolId,
 } from "./types";
 
-const KIND_TOOLS: Record<ContentKind, ToolId[]> = {
-  error_log: ["open_log_viewer", "search_docs"],
-  url: ["open_url", "save_note"],
-  meeting: ["draft_event"],
-  task: ["capture_task"],
-  idea: ["capture_idea"],
-  ordinary: ["save_note", "capture_idea", "capture_task"],
-};
-
-const CLARIFY_TOOLS: ToolId[] = ["capture_task", "capture_idea"];
-
-export type MockDecision = {
+export type HeuristicDecision = {
   result: DecisionResult;
   contentKind: ContentKind | null;
-  rankedIds: ToolId[];
 };
 
 /**
- * Deterministic offline provider. No network, no API key, no live Jev.
- * Pasted text is treated as data, never as permission-granting instructions.
+ * Deterministic offline heuristic. Used by the mock and local adapters.
+ * No network, no API key, no live Jev. Pasted text is data, never a permission grant.
  */
-export function mockDecide(request: DecisionRequest): MockDecision {
-  const offered = request.candidates
-    .map((candidate) => candidate.id)
-    .filter(isToolId);
-  const offeredSet = new Set(offered);
+export function heuristicDecide(
+  request: DecisionRequest,
+  provider: Exclude<DecisionProviderId, "jev">,
+): HeuristicDecision {
+  const offered = new Set(offeredToolIds(request.candidates));
   const kind = classify(request.input);
 
   if (kind === "empty" || kind === "injection") {
-    return finish(request, "abstain", null, []);
+    return finish(request, provider, "abstain", null);
   }
 
   if (kind === "ambiguous") {
-    const ranked = pickFrom(CLARIFY_TOOLS, offeredSet);
-    return finish(request, "clarify", null, ranked);
+    const hasClarify = CLARIFY_TOOLS.some((id) => offered.has(id));
+    return finish(request, provider, hasClarify ? "clarify" : "abstain", null);
   }
 
-  const ranked = pickFrom(KIND_TOOLS[kind], offeredSet);
-  if (ranked.length === 0) {
-    return finish(request, "abstain", null, []);
+  const selected = KIND_TOOLS[kind].find((id) => offered.has(id)) ?? null;
+  if (!selected) {
+    return finish(request, provider, "abstain", null);
   }
-  return finish(request, "select", kind, ranked);
-}
-
-function pickFrom(preferred: readonly ToolId[], offered: Set<ToolId>): ToolId[] {
-  return preferred.filter((id) => offered.has(id)).slice(0, MAX_SUGGESTIONS);
+  return finish(request, provider, "select", kind, selected);
 }
 
 function finish(
   request: DecisionRequest,
-  status: DecisionResult["status"],
+  provider: Exclude<DecisionProviderId, "jev">,
+  status: DecisionStatus,
   contentKind: ContentKind | null,
-  rankedIds: ToolId[],
-): MockDecision {
-  const actionId = status === "select" ? (rankedIds[0] ?? null) : null;
+  selected?: ToolId | null,
+): HeuristicDecision {
+  const actionId = status === "select" ? (selected ?? null) : null;
+  if (actionId && !isToolId(actionId)) {
+    return finish(request, provider, "abstain", null);
+  }
   if (actionId && !request.candidates.some((candidate) => candidate.id === actionId)) {
-    return finish(request, "abstain", null, []);
+    return finish(request, provider, "abstain", null);
   }
 
   return {
     contentKind,
-    rankedIds,
     result: {
       requestId: request.requestId,
       stateVersion: request.stateVersion,
       status,
       actionId,
-      provider: "mock",
+      provider,
     },
   };
+}
+
+export function mockDecide(request: DecisionRequest): HeuristicDecision {
+  return heuristicDecide(request, "mock");
 }
 
 export function suggestionFromId(id: ToolId) {

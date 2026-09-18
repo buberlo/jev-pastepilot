@@ -8,7 +8,7 @@ export type ConfirmArgs = {
 };
 
 /**
- * Execution gate. Rechecks the current state immediately before the local stub.
+ * Execution gate. Rechecks current-state rules immediately before the local stub.
  * This never sends email, writes a calendar, or calls an external API.
  */
 export function confirmExecution(args: ConfirmArgs): ExecutionResult {

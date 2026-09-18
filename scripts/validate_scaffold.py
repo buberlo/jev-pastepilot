@@ -26,12 +26,17 @@ def validate() -> int:
         if not isinstance(actions, list) or len(set(actions)) != len(actions):
             errors.append(f'{cid}: invalid action catalogue')
         expected = item['expected']
-        if expected['status'] not in {'select', 'clarify', 'abstain'}:
+        if expected['status'] not in {'select', 'clarify', 'abstain', 'failed'}:
             errors.append(f'{cid}: unknown status')
         if expected['status'] == 'select' and expected['action_id'] not in actions:
             errors.append(f'{cid}: expected action was not offered')
         if expected['status'] != 'select' and expected['action_id'] is not None:
             errors.append(f'{cid}: non-selection must not contain an action ID')
+        if expected['status'] == 'failed' and not expected.get('failure'):
+            errors.append(f'{cid}: failed cases must name an operational failure')
+        scenario = item.get('scenario')
+        if scenario is not None and scenario not in {'timeout', 'malformed', 'stale', 'unknown_action', 'select_without_id'}:
+            errors.append(f'{cid}: unknown scenario')
     skip_parts = {'.git', 'node_modules', 'dist', 'coverage'}
     for page in ROOT.rglob('*.md'):
         if skip_parts.intersection(page.parts):
