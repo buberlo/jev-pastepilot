@@ -72,6 +72,7 @@ export function openConfirmedUrl(url: string): boolean {
   if (typeof window === "undefined" || typeof window.open !== "function") {
     return false;
   }
-  const opened = window.open(url, "_blank", "noopener,noreferrer");
-  return opened !== null;
+  // Chrome returns null when noopener is set, even if the tab opened.
+  window.open(url, "_blank", "noopener,noreferrer");
+  return true;
 }

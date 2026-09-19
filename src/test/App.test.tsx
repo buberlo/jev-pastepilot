@@ -100,6 +100,18 @@ describe("paste panel smoke", () => {
     expect(screen.getByLabelText("Local preview")).toHaveTextContent(/confirmed http/);
   });
 
+  it("still reports Opened when the browser returns a null window handle", async () => {
+    const open = vi.fn(() => null);
+    vi.stubGlobal("open", open);
+    render(<App />);
+    const user = await pasteIntoField("https://example.com/docs");
+    await user.click(await screen.findByRole("button", { name: "Open link" }));
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(open).toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent(/Opened https:\/\/example.com\/docs/);
+    expect(screen.queryByText(/blocked the new tab/)).not.toBeInTheDocument();
+  });
+
   it("reads the clipboard from the explicit Paste button", async () => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
