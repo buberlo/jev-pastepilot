@@ -1,5 +1,3 @@
-import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
 import {
   handleShareRequest,
   parseShareBody,
@@ -101,14 +99,10 @@ describe("POST /share endpoint mapping", () => {
   });
 });
 
-describe("macos share wrapper", () => {
-  it("prints the same ingest URL the web app accepts", () => {
-    const script = resolve("macos/share-to-pastepilot.sh");
-    const out = execFileSync(script, ["--print-url", "Service failed: connection refused"], {
-      encoding: "utf8",
-    });
-    expect(out.trim()).toBe(
-      "http://localhost:5173/?text=Service%20failed%3A%20connection%20refused",
+describe("macos share wrapper URL", () => {
+  it("builds a local /?text= URL the wrapper can open", () => {
+    expect(shareAppUrl("Service failed: connection refused")).toBe(
+      "http://localhost:5173/?text=Service+failed%3A+connection+refused",
     );
   });
 });

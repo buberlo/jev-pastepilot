@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type PreviewServer, type ViteDevServer } from "vite";
-import { handleShareRequest } from "./src/domain/share";
+import { handleShareRequest } from "./src/domain/share.ts";
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
