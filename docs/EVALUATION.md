@@ -16,7 +16,7 @@ Measure correct selections, incorrect actions, abstentions and clarifications se
 
 Collect p50 and p95 wall-clock latency at the application boundary, request/token totals where exposed and failures by category. Report actual observed usage rather than assumed token cost. Compare the semantic provider with the deterministic baseline on the same inputs.
 
-Live Jev accuracy **must be measured** on a labelled set. Do not substitute a TypeSafe or Jev marketing claim for that measurement. Vendor `confidence` is a conservative routing gate in code (high → allow select, mid → clarify, low → abstain). An unclear Noul, a locally ambiguous paste, or a flat Choice margin can still force clarify after a high Choice score. That is local policy, not a vendor accuracy result. It is not shown as a dashboard, and it is not treated as proof of correctness. Thresholds live in `DEFAULT_GATE_THRESHOLDS` and optional `JEV_*` env vars.
+Live Jev accuracy **must be measured** on a labelled set (measure yourself; this repository does not publish an accuracy number). Do not substitute a TypeSafe or Jev marketing claim for that measurement. Vendor `confidence` is a conservative routing gate in code (high → allow select, mid → clarify, low → abstain). An unclear Noul, a locally ambiguous paste, or a flat Choice margin can still force clarify after a high Choice score. That is local policy, not a vendor accuracy result. It is not shown as a dashboard, and it is not treated as proof of correctness. Thresholds live in `DEFAULT_GATE_THRESHOLDS` and optional `JEV_*` env vars.
 
 ## Release gate
 

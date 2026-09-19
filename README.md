@@ -1,6 +1,6 @@
 # PastePilot
 
-Paste or share some text. Get a few useful actions. Confirm before anything happens.
+Paste or share some text. Get at most three actions. Confirm before anything happens.
 
 <video src="docs/demo/pastepilot-core.mp4" controls playsinline muted width="720" title="PastePilot: paste text, pick an action, confirm">
 </video>
@@ -11,46 +11,23 @@ Paste or share some text. Get a few useful actions. Confirm before anything happ
 
 ![Preview, then a single Confirm](docs/demo/preview-confirm.png)
 
-PastePilot is a small launcher, not a chatbot. You give it text. It suggests at most three things you might do with that text. You pick one, read a short preview, and tap Confirm. Until then, nothing is sent, scheduled, or written.
-
 ## What it is
 
-You paste (or Share) a log line, a meeting note, a link, or an idea. PastePilot offers a short list of allowlisted actions — for example **Open link**, **Draft event**, or **Save idea**. Tap a button to see a preview. Confirm is required.
+A small launcher, **not a chatbot**.
 
-**What Confirm does now**
+1. You paste or Share text (a log line, a link, a meeting note, an idea).
+2. PastePilot offers **at most three** allowlisted actions.
+3. You pick one, read a preview, and tap **Confirm**.
 
-- **Open link** — opens the first parsed `http` or `https` URL in your browser. Other schemes (`javascript:`, `data:`, `file:`, …) and URLs with passwords are blocked.
-- **Save idea / Save as task / Save note** — appends the text to a local inbox file (`.local/pastepilot/inbox.md` when you use `npm run dev`, or a download if the local server is not there). Set `PASTEPILOT_DATA_DIR` to choose another folder.
-- **Everything else** (draft event, log viewer, search docs) is still a local stub.
-
-Confirm never sends email, writes a calendar, or calls an external API. Opening the URL you confirmed is the only network step.
+Until Confirm, nothing is sent, scheduled, or written.
 
 Routing is typed: a classifier picks from a fixed tool list. Exact dates, URLs, and emails are parsed in ordinary code and shown in the preview. They never invent a send or a schedule.
 
-## Why it exists
+**Not** clipboard spyware, auto-email, auto-calendar, or an autonomous agent. No background watcher, no browsing, no shell.
 
-Most “do something with this text” tools either chat at you or quietly act on a clipboard. PastePilot is the opposite.
+## Quick start (web)
 
-- You start it. It does not watch the clipboard in the background.
-- It routes to a short allowlist of tools, not a general agent.
-- If it cannot decide, the text stays put and you pick a safe tool yourself.
-- Confirm is a gate, not a formality.
-
-## Where it is going
-
-The product we want feels like a Share Sheet, a Mac Services item, or a right-click: select text, send it to PastePilot, pick one action.
-
-The web paste page is the working prototype of that loop. A thin Mac Share / Services path already opens the same page with the text filled in.
-
-## What it is not
-
-- **Not clipboard spyware.** No background watcher. Paste and Share are explicit.
-- **Not auto-email or auto-calendar.** Confirm never sends or schedules.
-- **Not an autonomous agent.** No browsing, no shell, no silent writes.
-
-## Quick start
-
-Needs Node.js 20+ and npm. The default mock router needs **no API key**.
+Needs Node.js 20+ and npm. The default **mock** router needs **no API key**.
 
 ```sh
 npm install
@@ -65,43 +42,83 @@ npm run build
 python3 scripts/validate_scaffold.py
 ```
 
-`pnpm install` / `pnpm test` / `pnpm dev` also work if you prefer pnpm. This repo commits the npm lockfile (`package-lock.json`).
+`pnpm install` / `pnpm test` / `pnpm dev` also work. This repo commits `package-lock.json`.
 
-## Live Jev (optional)
+## Download for Mac
 
-Default routing is the offline mock. To try live TypeSafe Jev routing:
+Every push to `main` rebuilds the rolling release [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest).
 
-1. Copy [`.env.example`](.env.example) to a local `.env` (gitignored).
-2. Set `TYPESAFE_API_KEY` there or in your shell. Never commit a real key. Never log it.
-3. Open `http://localhost:5173/?provider=jev`, or start with `DECISION_PROVIDER=jev npm run dev`.
+- **Release page:** <https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest>
+- **Direct zip:** <https://github.com/buberlo/jev-pastepilot/releases/download/mac-latest/PastePilot-mac.zip>
 
-The browser never sees the key. It posts a routing request to local `POST /api/decide`. Selecting Jev sends the pasted text to TypeSafe for **routing only**. Confirm still uses the local adapters above.
+The zip is **ad-hoc / unsigned** (not Developer ID, not notarized). After unzipping:
 
-If the key is missing or the call fails (timeout, malformed body, HTTP 429), PastePilot **fail-opens**: the text stays editable and you get the same safe manual tools. It does not crash and does not pretend a live success.
+1. Move `PastePilot.app` to `/Applications` (or `~/Applications`).
+2. **Right-click → Open** the first time so Gatekeeper lets it run.
+3. Save an API key in **PastePilot → Settings…** if you want live Jev. The zip never contains `TYPESAFE_API_KEY`.
 
-**Decision layer.** One System One call asks several independent questions against the same paste: a Choice for the allowlisted action, a Noul for injection/suspicion, a Noul for emptiness/clarity, and a Score for fit. Code combines those answers. Confidence is a gate, not proof: high (default ≥ 0.75) may keep a select; mid prefers clarify; low (default < 0.45) abstains to the manual tools. An unclear Noul, a locally ambiguous paste (for example “Handle this.”), or a flat Choice margin (default < 0.15, `JEV_CHOICE_MARGIN`) can still force clarify even when Choice confidence is high. Injection and empty still abstain; fail-open is unchanged. Thresholds are constants in `src/domain/decisionLayer.ts`, overridable with `JEV_*` env vars (see `.env.example`). Allowlisted IDs, `stateVersion`, and Confirm still apply. The main UI stays a short button list — no taxonomy or confidence dashboard.
+Optional `v*` tags publish a versioned copy of the same zip. [All releases](https://github.com/buberlo/jev-pastepilot/releases). Install and Share steps: [macos/README.md](macos/README.md).
 
-**Model pin.** The SDK default alias is `jev-latest`. TypeSafe currently resolves that to `jev-1.13.0` (checked 2026-09-19). Set `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version; the alias can move. The response `model` field reports the versioned id that answered.
+## Settings / API key
 
-Do not treat this README, a vendor claim, or a confidence score as a measured accuracy result. If you run a live call, record the SDK version and the response `model` field with your own sample.
+| Surface | Where the key lives |
+| --- | --- |
+| **Mac app** | **PastePilot → Settings…** (`⌘,`) stores `TYPESAFE_API_KEY` in the **Keychain only** |
+| **Web / local server** | `.env` or the server process environment |
 
-Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test` — see `src/test/jev.live.test.ts`. Demo flags without a key: `/?scenario=low_confidence`, `/?scenario=mid_confidence`, `/?scenario=timeout`, `/?provider=jev`.
+Never commit a real key. Never log it. Never put it on `/?text=`.
+
+On a Mac, start the local server with [`macos/run-dev-with-keychain.sh`](macos/run-dev-with-keychain.sh) so the Keychain key is injected into the process environment only. The browser never sees it.
+
+Web-only: copy [`.env.example`](.env.example) to a gitignored `.env`.
+
+## Confirm tools
+
+Confirm is required. After the execution gate:
+
+| Action | What Confirm does |
+| --- | --- |
+| **Open link** | Opens the first parsed `http`/`https` URL. Other schemes and URLs with passwords are blocked. |
+| **Save idea / Save as task / Save note** | Appends to a local inbox (`.local/pastepilot/inbox.md` under `npm run dev`, or a download). `PASTEPILOT_DATA_DIR` overrides the folder. |
+| **Everything else** | Local stub (draft event, log viewer, search docs). |
+
+Confirm never sends email, writes a calendar, or calls an external API. Opening the URL you confirmed is the only network step.
+
+## Decision layer (optional live Jev)
+
+Default routing is the offline mock. Live TypeSafe Jev is optional.
+
+1. Put the key in Mac Settings, or copy [`.env.example`](.env.example) to `.env`.
+2. Open `http://localhost:5173/?provider=jev`, or start with `DECISION_PROVIDER=jev`.
+
+The browser posts a routing request to local `POST /api/decide`. Selecting Jev sends the pasted text to TypeSafe for **routing only**.
+
+**How it decides.** One System One call asks independent questions against the same paste: a **Choice** for the allowlisted action, a **Score** for fit, and **Noul**s for injection and emptiness/clarity. Code combines those answers.
+
+**Confidence gates** (defaults; overridable with `JEV_*` — see `.env.example`):
+
+- High (≥ 0.75) may keep a contract-valid select.
+- Mid prefers clarify / safer tools.
+- Low (< 0.45) abstains to the manual list.
+- **Unclear or locally ambiguous** pastes (for example “Handle this.”) **force clarify even when Choice confidence is high**. Injection and empty still abstain.
+
+If the key is missing or the call fails, PastePilot **fail-opens**: the text stays editable and you get the safe manual tools.
+
+Do not treat this README, a vendor claim, or a confidence score as a measured accuracy result. **Measure yourself** on a labelled set — see [docs/EVALUATION.md](docs/EVALUATION.md). If you run a live call, record the SDK version and the response `model` field.
+
+**Model pin.** Alias `jev-latest` currently resolves to `jev-1.13.0` (checked 2026-09-19). Pin `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version.
+
+Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test`. Demo flags without a key: `/?scenario=low_confidence`, `/?scenario=mid_confidence`, `/?scenario=timeout`, `/?provider=jev`.
 
 ## Share from a Mac
 
-**Download the helper:** every push to `main` refreshes the rolling GitHub Release [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) (`PastePilot-mac.zip`). Optional `v*` tags publish a versioned copy of the same zip. [All releases](https://github.com/buberlo/jev-pastepilot/releases).
+Keep the web app running, then select text → **Services → Send to PastePilot**. The browser opens `/?text=` with the field filled. Confirm is still required.
 
-The CI build is **ad-hoc / not notarized** (no Developer ID secrets in this repo). After unzipping, **right-click → Open** the first time so Gatekeeper lets it run. The zip never contains `TYPESAFE_API_KEY`; save the key in Keychain via **PastePilot → Settings…**.
+**Double-click** `macos/install.command`, or use the Release `.app`. `--clipboard` on the helper is an explicit flag — no watcher.
 
-Install steps live in [macos/README.md](macos/README.md).
+Windows share / tray is not built yet.
 
-Short version: keep `npm run dev` running, then **double-click** `macos/install.command` (or copy the bundled Quick Action into `~/Library/Services`). Select text → **Services → Send to PastePilot**. The browser opens `/?text=` with the field filled and at most three actions. Confirm is still required.
-
-On a Mac, use the Release `.app` (or build `macos/PastePilotService/build.sh`) to store `TYPESAFE_API_KEY` in the **Keychain** (never in git). Start the server with `macos/run-dev-with-keychain.sh` so the key stays in the process environment. Details: [macos/README.md](macos/README.md).
-
-`--clipboard` on the helper script is an explicit flag. There is no passive clipboard surveillance.
-
-Windows share / tray is not built yet. A later slice can open the same `/?text=` URL.
+Details: [macos/README.md](macos/README.md).
 
 ## Status
 
@@ -109,13 +126,14 @@ Windows share / tray is not built yet. A later slice can open the same `/?text=`
 | --- | --- |
 | **MS1** — paste page, ≤3 actions, preview → Confirm | Done |
 | **MS2** — parsers, allowlisted actions, replaceable router, failure paths | Done |
-| **Share** — URL ingest + importable Mac Quick Action / Shortcuts | Done |
+| **Share** — URL ingest + Mac Quick Action / Shortcuts | Done |
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
-| **Confirm tools** — open allowlisted http(s); append idea/task/note locally | Done |
-| **Mac Settings** — SwiftUI Settings + Keychain; unsigned CI `.app` on [Releases](https://github.com/buberlo/jev-pastepilot/releases) | Done (ad-hoc, not notarized) |
-| **Next** — notarized Mac `.app`, Windows share / tray, more tools | Not started |
+| **Confirm tools** — open allowlisted http(s); save idea/task/note locally | Done |
+| **Mac Settings** — SwiftUI Settings + Keychain (`⌘,`) | Done |
+| **Release CI** — every `main` push rebuilds unsigned [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) | Done |
+| **Next** — notarized Mac `.app`, Windows share / tray, more tools | North-star |
 
-A slice is done when you can reproduce it with the commands above. See [docs/MVP.md](docs/MVP.md).
+See [docs/MVP.md](docs/MVP.md).
 
 ## Safety
 

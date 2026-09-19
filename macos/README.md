@@ -18,7 +18,10 @@ Windows share / tray is later work. It can open the same `/?text=` URL when it e
 
 ## Download (GitHub Releases)
 
-Linux CI cannot build this `.app`. The Mac workflow does.
+Linux CI cannot build this `.app`. The Mac workflow does. **Every push to `main` rebuilds** the rolling tag [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest).
+
+- **Release page:** <https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest>
+- **Direct zip:** <https://github.com/buberlo/jev-pastepilot/releases/download/mac-latest/PastePilot-mac.zip>
 
 | Trigger | Release | Asset |
 | --- | --- | --- |
@@ -30,7 +33,7 @@ Workflow: [`.github/workflows/mac-release.yml`](../.github/workflows/mac-release
 
 **This build is ad-hoc signed, not Developer ID signed, and not notarized.** macOS Gatekeeper will warn.
 
-1. Download `PastePilot-mac.zip` from [Releases](https://github.com/buberlo/jev-pastepilot/releases).
+1. Download [`PastePilot-mac.zip`](https://github.com/buberlo/jev-pastepilot/releases/download/mac-latest/PastePilot-mac.zip).
 2. Unzip. Drag `PastePilot.app` to `/Applications` (or `~/Applications`).
 3. **Right-click** the app → **Open** (not a regular double-click) the first time. Confirm the Gatekeeper dialog.
 4. The Settings window **is** the app. Optionally save the TypeSafe API key — it goes to **Keychain only**, never into the downloaded zip or this repo.
