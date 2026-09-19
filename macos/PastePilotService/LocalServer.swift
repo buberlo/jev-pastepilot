@@ -176,6 +176,7 @@ final class LocalServer: ObservableObject {
         env["TYPESAFE_MODEL"] = AppSettings.model
         env["PASTEPILOT_PREFERRED_BROWSER"] = AppSettings.preferredBrowser
         env["PASTEPILOT_SHORTCUT_NAME"] = AppSettings.shortcutName
+        env["PASTEPILOT_NATIVE_MAC"] = "1"
         if let key = KeychainStore.readAPIKey(), !key.isEmpty {
             env["TYPESAFE_API_KEY"] = key
         }

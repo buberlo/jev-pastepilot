@@ -87,17 +87,19 @@ Confirm is required. After the execution gate:
 | **Copy text / Draft message / Extract links** | Copies text or parsed links after Confirm. |
 | **Format JSON / Open log viewer** | Saves a local `.json` or `.log` file. |
 | **Save idea / task / note / markdown / code / quote / link / checklist / for later** | Appends to a local inbox (`.local/pastepilot/inbox.md` under `npm run dev`, or a download). `PASTEPILOT_DATA_DIR` overrides the folder. |
-| **Open in Notes / Add reminder** | On Mac, Confirm creates an Apple Notes or Reminders draft (`osascript`). Web/Linux save a local note or task instead. |
-| **Open in Calendar** | On Mac, Confirm writes an `.ics` draft and `open`s it in Calendar. Elsewhere it downloads the draft. Nothing is scheduled. |
-| **Open in Safari / Chrome** | On Mac, Confirm opens the parsed http(s) link in that app. Elsewhere the default browser is used. |
-| **Reveal in Finder / Open in Terminal** | On Mac, Confirm reveals a pasted path (or the inbox folder) or opens Terminal at that path. The paste is **never** a shell command. Labeled stubs elsewhere. |
+| **Open in Notes / Add reminder** | On Mac, Confirm creates an Apple Notes or Reminders draft in **Swift** (Automation prompt if needed). Web/Linux save a local note or task instead. |
+| **Open in Calendar** | On Mac, Confirm writes an `.ics` draft and opens it with NSWorkspace. Elsewhere it downloads the draft. Nothing is scheduled. |
+| **Open in Safari / Chrome** | On Mac, Confirm opens the parsed http(s) link in that app via NSWorkspace. Elsewhere the default browser is used. |
+| **Open in Finder / Open in Terminal** | Paste `/Users/…` or `~/Desktop` and those two buttons appear (even with live Jev). On Mac, Confirm uses NSWorkspace — not Node `osascript`. The paste is **never** a shell command. Labeled stubs on web/Linux. |
 | **Look up word / Spotlight search** | Dictionary via `dict://` on Mac (Wiktionary on the web). Spotlight copies the query and tries ⌘Space on Mac. |
 | **Run Shortcut / Speak text / Share text** | Shortcut name comes from Settings (`PASTEPILOT_SHORTCUT_NAME`), never the API key. `say` is Mac-only. Share copies and notifies. |
 | **Screen paste** | Local injection/substance summary. Nothing is sent or written. |
 
 The allowlist is the previous two-dozen tools plus these Mac actions. The UI still shows **at most three** buttons. Confirm never sends email, writes a calendar, runs a pasted shell line, or puts `TYPESAFE_API_KEY` on a URL.
 
-**Catalogue (Jev Choice labels):** Open link, Search the web, Search docs, Search Wikipedia, Search this error, Search Stack Overflow, Open log viewer, Open maps, Open GitHub, Draft email, Draft message, Draft event, Copy text, Extract links, Format JSON, Save for later, Save as task, Save idea, Save note, Save markdown, Save code, Save quote, Save link, Save checklist, Open in Notes, Add reminder, Open in Calendar, Reveal in Finder, Open in Safari, Open in Chrome, Look up word, Spotlight search, Open in Terminal, Run Shortcut, Speak text, Share text, Screen paste.
+**Catalogue (Jev Choice labels):** Open link, Search the web, Search docs, Search Wikipedia, Search this error, Search Stack Overflow, Open log viewer, Open maps, Open GitHub, Draft email, Draft message, Draft event, Copy text, Extract links, Format JSON, Save for later, Save as task, Save idea, Save note, Save markdown, Save code, Save quote, Save link, Save checklist, Open in Notes, Add reminder, Open in Calendar, Open in Finder, Open in Safari, Open in Chrome, Look up word, Spotlight search, Open in Terminal, Run Shortcut, Speak text, Share text, Screen paste.
+
+**Path paste example.** Paste `/Users/konrad/` or `~/Desktop`. You should see **Open in Finder** and **Open in Terminal**. Confirm is still required. A local steal ranks those buttons even when the live Jev provider would have picked something else.
 
 ## Decision layer (optional live Jev)
 
@@ -146,7 +148,7 @@ Details: [macos/README.md](macos/README.md).
 | **Share** — URL ingest + Mac Quick Action / Shortcuts | Done |
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
 | **Confirm tools** — open http(s)/mailto/maps search; save locally; copy; download `.ics`/`.md`/`.json` | Done |
-| **Mac Confirm tools** — Notes, Reminders, Calendar, Finder, Safari/Chrome, Dictionary, Spotlight, Terminal, Shortcuts, Speak, Share (stubs on web/Linux) | Done |
+| **Mac Confirm tools** — native Swift Confirm (NSWorkspace / NSAppleScript / `say`); Finder+Terminal on path paste; stubs on web/Linux | Done |
 | **Mac Settings** — SwiftUI Settings + Keychain (`⌘,`); optional preferred browser + Shortcut name | Done |
 | **Mac v1** — in-app UI (WKWebView) + bundled local server + Services → app window | Done (ad-hoc, not notarized) |
 | **Release CI** — every `main` push rebuilds unsigned [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) | Done |
@@ -158,7 +160,7 @@ See [docs/MVP.md](docs/MVP.md).
 
 - Clipboard access is explicit. No background monitoring.
 - Pasted text is untrusted data. It cannot grant new permissions.
-- Routing does not send, schedule, or write anything. Confirm may open an allowlisted http(s) or mailto draft, copy text, write a local file, or (on Mac, after Confirm) open Notes/Reminders/Calendar/Finder/Terminal/`say`/Shortcuts. Never send email, schedule a calendar event, or run a pasted shell command.
+- Routing does not send, schedule, or write anything. Confirm may open an allowlisted http(s) or mailto draft, copy text, write a local file, or (on Mac, after Confirm) open Notes/Reminders/Calendar/Finder/Terminal/Shortcuts in **Swift**. Never send email, schedule a calendar event, or run a pasted shell command. Automation is requested only for Notes/Reminders. Spotlight copies the query (⌘Space); it does not drive Accessibility.
 - Exact values (dates, URLs, emails) are parsed in code, separate from “what kind of text is this?”
 - Provider keys stay server-side (or in the Mac Keychain for Settings). Never commit them. Never log `TYPESAFE_API_KEY`. Never put the key on `/?text=`.
 
@@ -177,7 +179,7 @@ See [docs/MVP.md](docs/MVP.md).
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, Confirm adapters, Mac actions (osascript mocked), local save/export, UI smoke |
+| `npm test` | Parsers, routing, path steal, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, Confirm adapters, Mac actions (native bridge + osascript fallback mocked), local save/export, UI smoke |
 | `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side, Mac workflow only |
 | GitHub Actions `Mac release` | Bundles the Vite UI + Node server, builds `macos/PastePilotService` on `macos-latest`, publishes `PastePilot-mac.zip` |
 

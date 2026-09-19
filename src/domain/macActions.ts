@@ -101,7 +101,8 @@ function firstHttpUrl(input: string, parsed: ParsedFacts): string | undefined {
 
 /**
  * Build a Confirm payload for a Mac-oriented tool.
- * Execution still goes through the gate. The server runs osascript/`open` only on darwin.
+ * Execution still goes through the gate. The Mac app runs side-effects in Swift.
+ * Node osascript/`open` is only a web/dev fallback on darwin.
  */
 export function buildMacActionPayload(
   toolId: MacActionToolId,
@@ -287,7 +288,7 @@ export function macActionMessage(toolId: MacActionToolId, used: "mac" | "fallbac
     return "Opened Calendar with an .ics draft. Nothing was scheduled.";
   }
   if (toolId === "reveal_in_finder") {
-    return "Revealed the file in Finder.";
+    return "Opened the path in Finder.";
   }
   if (toolId === "open_in_safari") {
     return "Opened the link in Safari.";

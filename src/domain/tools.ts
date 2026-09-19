@@ -219,8 +219,8 @@ export const TOOLS: Record<ToolId, ToolDefinition> = {
   },
   reveal_in_finder: {
     id: "reveal_in_finder",
-    label: "Reveal in Finder",
-    description: "Reveal a pasted path or the local inbox folder in Finder after Confirm.",
+    label: "Open in Finder",
+    description: "Open a pasted path in Finder after Confirm. Home and absolute paths only.",
     safeFallback: false,
   },
   open_in_safari: {

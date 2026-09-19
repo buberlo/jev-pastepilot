@@ -64,26 +64,38 @@ Fields:
 - **Preferred browser** — `default` | `safari` | `chrome`. Used by **Open in Safari** / **Open in Chrome** after Confirm. Never put on a URL.
 - **Shortcut** — optional name for **Run Shortcut** (`shortcuts://run-shortcut?name=`). The API key is never added.
 
-## Mac Confirm tools
+## Mac Confirm tools (native Swift)
 
-Invoked only after Confirm, from the bundled server (`POST /api/mac`). `osascript` / `open` / `say` are mocked in unit tests. Web/Linux get an honest fallback (local save, download, copy, or a labeled stub).
+Invoked only after Confirm. In `PastePilot.app`, the WKWebView posts to `webkit.messageHandlers.macAction`. **Swift** runs the side-effect (NSWorkspace, NSSpeechSynthesizer, or NSAppleScript). The bundled Node server is marked `PASTEPILOT_NATIVE_MAC=1` and does **not** spawn `osascript` / `open` / `say`.
 
-| Tool | Mac (after Confirm) | Elsewhere |
+`npm run dev` on a Mac (no app) still uses `POST /api/mac` as a fallback. Web/Linux get an honest fallback (local save, download, copy, or a labeled stub).
+
+**Path paste.** Paste `/Users/konrad/` or `~/Desktop`. **Open in Finder** and **Open in Terminal** appear even when Provider is `jev`. Confirm still required. Nothing auto-runs.
+
+| Tool | Mac app (after Confirm) | Elsewhere |
 | --- | --- | --- |
-| **Open in Notes** | Create a Notes draft | Save a local note |
-| **Add reminder** | Create a Reminders item | Save a local task |
-| **Open in Calendar** | Write `.ics` and `open` it | Download the `.ics` draft |
-| **Reveal in Finder** | `open -R` a pasted path or the inbox folder | Labeled stub |
-| **Open in Safari / Chrome** | `open -a` that browser with an allowlisted http(s) URL | Default browser |
-| **Look up word** | `dict://` | Wiktionary |
-| **Spotlight search** | Copy query + try Spotlight | Copy the query |
-| **Open in Terminal** | `open -a Terminal` with a path, or the app alone. **Never** runs the paste as a command | Labeled stub |
+| **Open in Notes** | NSAppleScript Notes draft (Automation prompt) | Save a local note |
+| **Add reminder** | NSAppleScript Reminders draft (Automation prompt) | Save a local task |
+| **Open in Calendar** | Write `.ics` and NSWorkspace-open it | Download the `.ics` draft |
+| **Open in Finder** | NSWorkspace `activateFileViewerSelecting` | Labeled stub |
+| **Open in Safari / Chrome** | NSWorkspace open in that app | Default browser |
+| **Look up word** | `dict://` via NSWorkspace | Wiktionary |
+| **Spotlight search** | Copy query + notification. No Accessibility keystroke | Copy the query |
+| **Open in Terminal** | NSWorkspace opens Terminal **at a path**. **Never** runs the paste as a command | Labeled stub |
 | **Run Shortcut** | `shortcuts://run-shortcut?name=` from Settings | Labeled stub |
-| **Speak text** | `say` | Labeled stub |
+| **Speak text** | `NSSpeechSynthesizer` | Labeled stub |
 | **Share text** | Copy + notification | Copy |
 | **Screen paste** | Local injection/substance summary (any OS) | Same |
 
+### Permissions
+
+- **Automation** — first Confirm of Notes or Reminders. macOS asks to control that app. Decline = labeled fallback.
+- **Accessibility** — not required for Finder, Terminal, Safari/Chrome, Dictionary, Speak, or Spotlight (query is copied; press ⌘Space yourself).
+- **Keychain** — only for the TypeSafe API key in Settings. Never logged.
+
 Injection still abstains. The UI still shows at most three buttons. CI `mac-release` rebuilds the `.app` on merge to `main`.
+
+Linux CI cannot open Finder. The suggestion UI is covered by tests and [docs/demo](../docs/demo/). On a Mac, Confirm opens Finder for real.
 
 The WKWebView never sees the key. Saving Settings restarts the bundled server so a new key, model, browser, or Shortcut name is picked up.
 

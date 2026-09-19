@@ -20,7 +20,10 @@ describe("Mac Settings source", () => {
     const web = await readFile(path.join(root, "MainWebView.swift"), "utf8");
     const settings = await readFile(path.join(root, "AppSettings.swift"), "utf8");
     const server = await readFile(path.join(root, "LocalServer.swift"), "utf8");
+    const actions = await readFile(path.join(root, "MacActions.swift"), "utf8");
     const service = await readFile(path.join(root, "ServiceProvider.swift"), "utf8");
+    const build = await readFile(path.join(root, "build.sh"), "utf8");
+    const pkg = await readFile(path.join(root, "Package.swift"), "utf8");
 
     expect(view).toContain("SecureField");
     expect(view).toContain("SettingsView");
@@ -30,13 +33,26 @@ describe("Mac Settings source", () => {
     expect(app).toContain("WindowGroup(\"PastePilot\")");
     expect(app).toContain("Settings");
     expect(web).toContain("WKWebView");
+    expect(web).toContain("WKScriptMessageHandlerWithReply");
+    expect(web).toContain("macAction");
+    expect(web).toContain("MacActions.handle");
     expect(web).toContain("mailto");
     expect(web).toContain("dict");
     expect(web).toContain("shortcuts");
+    expect(actions).toContain("NSWorkspace");
+    expect(actions).toContain("NSAppleScript");
+    expect(actions).toContain("NSSpeechSynthesizer");
+    expect(actions).toContain("safeFileURL");
+    expect(actions).toContain("com.apple.Terminal");
+    expect(actions).not.toMatch(/print\(|NSLog\(|os_log/);
+    expect(actions).not.toMatch(SECRETISH);
+    expect(build).toContain("MacActions.swift");
+    expect(pkg).toContain("MacActions.swift");
     expect(settings).toContain("preferredBrowser");
     expect(settings).toContain("shortcutName");
     expect(server).toContain("PASTEPILOT_PREFERRED_BROWSER");
     expect(server).toContain("PASTEPILOT_SHORTCUT_NAME");
+    expect(server).toContain("PASTEPILOT_NATIVE_MAC");
     expect(server).toContain("TYPESAFE_API_KEY");
     expect(server).toContain("PASTEPILOT_READY");
     expect(server).toContain("127.0.0.1");

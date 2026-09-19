@@ -68,6 +68,11 @@ struct PastePilotWebView: NSViewRepresentable {
         preferences.allowsContentJavaScript = true
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences = preferences
+        config.userContentController.addScriptMessageHandler(
+            context.coordinator,
+            contentWorld: .page,
+            name: "macAction"
+        )
         let view = WKWebView(frame: .zero, configuration: config)
         view.navigationDelegate = context.coordinator
         view.uiDelegate = context.coordinator
@@ -83,8 +88,27 @@ struct PastePilotWebView: NSViewRepresentable {
         }
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    static func dismantleNSView(_ view: WKWebView, coordinator: Coordinator) {
+        view.configuration.userContentController.removeScriptMessageHandler(
+            forName: "macAction",
+            contentWorld: .page
+        )
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandlerWithReply {
         var loadedURL: URL?
+
+        func userContentController(
+            _ userContentController: WKUserContentController,
+            didReceive message: WKScriptMessage,
+            replyHandler: @escaping (Any?, String?) -> Void
+        ) {
+            guard message.name == "macAction" else {
+                replyHandler(nil, "unknown_handler")
+                return
+            }
+            MacActions.handle(message.body, reply: replyHandler)
+        }
 
         func webView(
             _ webView: WKWebView,
