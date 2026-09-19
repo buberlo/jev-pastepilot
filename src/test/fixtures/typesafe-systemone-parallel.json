@@ -1,0 +1,45 @@
+{
+  "comment": "Recorded parallel System One shape: Choice + Noul + Score. Not a live response. No credentials.",
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "action": {
+        "type": "choice",
+        "choice": "open_log_viewer",
+        "probabilities": {
+          "open_log_viewer": 0.88,
+          "abstain": 0.07,
+          "clarify": 0.05
+        },
+        "confidence": 0.84
+      },
+      "suspicious": {
+        "type": "noul",
+        "noul": 0.04
+      },
+      "unclear": {
+        "type": "noul",
+        "noul": 0.08
+      },
+      "fit": {
+        "type": "score",
+        "score": 1.82,
+        "confidence": 0.79,
+        "legend": {
+          "0": "No fit. Nothing on the allowlist matches this text.",
+          "1": "Weak or ambiguous fit. Several actions could apply, or the text is unclear.",
+          "2": "Clear fit for one allowlisted action."
+        },
+        "probabilities": {
+          "0": 0.04,
+          "1": 0.1,
+          "2": 0.86
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 180,
+      "output_tokens": 16
+    }
+  }
+}

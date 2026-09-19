@@ -2,6 +2,8 @@
 import selectFixture from "./fixtures/typesafe-systemone-select.json";
 import abstainFixture from "./fixtures/typesafe-systemone-abstain.json";
 import malformedFixture from "./fixtures/typesafe-systemone-malformed.json";
+import parallelFixture from "./fixtures/typesafe-systemone-parallel.json";
+import lowConfidenceFixture from "./fixtures/typesafe-systemone-low-confidence.json";
 import { validateDecisionResult } from "../domain/contract";
 import { logOperational } from "../domain/log";
 import { ProviderNotConfiguredError, ProviderQuotaError } from "../domain/providerErrors";
@@ -14,6 +16,9 @@ import { createJevAdapter, readApiKey, TYPESAFE_SDK_VERSION } from "../server/je
 import {
   ABSTAIN_OPTION,
   ACTION_QUESTION,
+  FIT_QUESTION,
+  SUSPICIOUS_QUESTION,
+  UNCLEAR_QUESTION,
   buildSystemOnePayload,
   decisionFromSystemOne,
   JevMappingError,
@@ -38,7 +43,7 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 describe("System One mapping", () => {
-  it("builds a documented choice payload from the domain request", () => {
+  it("builds a documented parallel payload from the domain request", () => {
     const payload = buildSystemOnePayload(request, "jev-latest");
     expect(payload.model).toBe("jev-latest");
     expect(payload.state.pasted_text).toBe(request.input);
@@ -46,6 +51,10 @@ describe("System One mapping", () => {
     expect(payload.questions.action.criteria.open_log_viewer).toBeTruthy();
     expect(payload.questions.action.criteria[ABSTAIN_OPTION]).toBeTruthy();
     expect(payload.questions.action.criteria.clarify).toBeTruthy();
+    expect(payload.questions[SUSPICIOUS_QUESTION].type).toBe("noul");
+    expect(payload.questions[UNCLEAR_QUESTION].type).toBe("noul");
+    expect(payload.questions[FIT_QUESTION].type).toBe("score");
+    expect(payload.questions.fit.criteria).toHaveLength(3);
   });
 
   it("maps a recorded choice response to a contract-valid select", () => {
@@ -74,6 +83,64 @@ describe("System One mapping", () => {
   it("rejects a malformed System One body", () => {
     expect(() => decisionFromSystemOne(malformedFixture.response, request)).toThrow(JevMappingError);
     expect(() => decisionFromSystemOne({ not: "systemone" }, request)).toThrow(JevMappingError);
+  });
+
+  it("combines parallel answers in code and keeps a clean high-confidence select", () => {
+    const decision = decisionFromSystemOne(parallelFixture.response, request);
+    const checked = validateDecisionResult(decision, request);
+    expect(checked).toEqual({
+      ok: true,
+      result: {
+        requestId: "req-jev-1",
+        stateVersion: "v-jev-1",
+        status: "select",
+        actionId: "open_log_viewer",
+        provider: "jev",
+        confidence: 0.84,
+      },
+    });
+  });
+
+  it("gates a low-confidence Choice select to abstain", () => {
+    const decision = decisionFromSystemOne(lowConfidenceFixture.response, request);
+    expect(decision.status).toBe("abstain");
+    expect(decision.actionId).toBeNull();
+    expect(decision.confidence).toBe(0.22);
+    expect(validateDecisionResult(decision, request).ok).toBe(true);
+  });
+
+  it("downgrades a select when the suspicious Noul is high", () => {
+    const raw = {
+      model: "jev-1.13.0",
+      answers: {
+        action: {
+          type: "choice",
+          choice: "open_log_viewer",
+          confidence: 0.9,
+        },
+        suspicious: { type: "noul", noul: 0.93 },
+        unclear: { type: "noul", noul: 0.05 },
+        fit: { type: "score", score: 1.8 },
+      },
+    };
+    const decision = decisionFromSystemOne(raw, request);
+    expect(decision.status).toBe("abstain");
+    expect(decision.actionId).toBeNull();
+  });
+
+  it("rejects a malformed extra answer instead of guessing", () => {
+    expect(() =>
+      decisionFromSystemOne(
+        {
+          model: "jev-1.13.0",
+          answers: {
+            action: { type: "choice", choice: "open_log_viewer", confidence: 0.9 },
+            suspicious: { type: "choice", choice: "yes" },
+          },
+        },
+        request,
+      ),
+    ).toThrow(JevMappingError);
   });
 });
 
@@ -111,6 +178,10 @@ describe("Jev adapter fail-open", () => {
       expect(body.state.pasted_text).toBe(request.input);
       expect(body.questions.action.type).toBe("choice");
       expect(body.questions.action.criteria.open_log_viewer).toBeTruthy();
+      expect(body.questions.suspicious.type).toBe("noul");
+      expect(body.questions.unclear.type).toBe("noul");
+      expect(body.questions.fit.type).toBe("score");
+      expect(body.questions.fit.criteria).toHaveLength(3);
       return jsonResponse(200, selectFixture.response);
     });
 
@@ -250,6 +321,23 @@ describe("routePaste jev fail-open", () => {
     expect(outcome.status).toBe("failed");
     expect(outcome.failure).toBe("quota");
     expect(outcome.fallbackTools.length).toBeGreaterThan(0);
+  });
+
+  it("applies a low-confidence gate to abstain with manual tools", async () => {
+    const outcome = await routePaste(request.input, { scenario: "low_confidence" });
+    expect(outcome.status).toBe("abstain");
+    expect(outcome.primaryActionId).toBeNull();
+    expect(outcome.decision?.confidence).toBe(0.2);
+    expect(outcome.fallbackTools.map((item) => item.toolId)).toEqual([...SAFE_FALLBACK_IDS]);
+  });
+
+  it("applies a mid-confidence gate to clarify", async () => {
+    const outcome = await routePaste(request.input, { scenario: "mid_confidence" });
+    expect(outcome.status).toBe("clarify");
+    expect(outcome.primaryActionId).toBeNull();
+    expect(outcome.decision?.confidence).toBe(0.55);
+    expect(outcome.suggestions.length).toBeGreaterThan(0);
+    expect(outcome.suggestions.length).toBeLessThanOrEqual(3);
   });
 
   it("never logs operational fields that look like secrets", () => {

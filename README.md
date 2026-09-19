@@ -69,11 +69,15 @@ Default routing is the offline mock. To try live TypeSafe Jev routing:
 
 The browser never sees the key. It posts a routing request to local `POST /api/decide`. Selecting Jev sends the pasted text to TypeSafe for **routing only**. Confirm is still the local stub.
 
-If the key is missing or the call fails, PastePilot **fail-opens**: the text stays editable and you get the same safe manual tools. It does not crash and does not pretend a live success.
+If the key is missing or the call fails (timeout, malformed body, HTTP 429), PastePilot **fail-opens**: the text stays editable and you get the same safe manual tools. It does not crash and does not pretend a live success.
+
+**Decision layer.** One System One call asks several independent questions against the same paste: a Choice for the allowlisted action, a Noul for injection/suspicion, a Noul for emptiness/clarity, and a Score for fit. Code combines those answers. Confidence is a gate, not proof: high (default ≥ 0.75) may keep a select; mid prefers clarify; low (default < 0.45) abstains to the manual tools. Thresholds are constants in `src/domain/decisionLayer.ts`, overridable with `JEV_*` env vars (see `.env.example`). Allowlisted IDs, `stateVersion`, and Confirm still apply. The main UI stays a short button list — no taxonomy or confidence dashboard.
+
+**Model pin.** The SDK default alias is `jev-latest`. TypeSafe currently resolves that to `jev-1.13.0` (checked 2026-09-19). Set `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version; the alias can move. The response `model` field reports the versioned id that answered.
 
 Do not treat this README, a vendor claim, or a confidence score as a measured accuracy result. If you run a live call, record the SDK version and the response `model` field with your own sample.
 
-Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test` — see `src/test/jev.live.test.ts`.
+Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test` — see `src/test/jev.live.test.ts`. Demo flags without a key: `/?scenario=low_confidence`, `/?scenario=mid_confidence`, `/?scenario=timeout`, `/?provider=jev`.
 
 ## Share from a Mac
 
@@ -120,7 +124,7 @@ A slice is done when you can reproduce it with the commands above. See [docs/MVP
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Parsers, routing, failure paths, Jev adapter fixtures, share ingest, UI smoke |
+| `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, UI smoke |
 | `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side |
 
 These checks do not measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.

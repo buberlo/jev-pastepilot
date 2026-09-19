@@ -57,10 +57,10 @@ Transport failure, invalid responses, missing configuration and quota exhaustion
 
 ## Evaluation and telemetry
 
-Keep the request ID, domain version, provider/configuration version, elapsed time and outcome category. Log content only when explicitly enabled for a synthetic evaluation. Never treat confidence alone as proof of correctness. The local fixture format in `examples/cases.json` describes end-to-end expected behaviour, including deterministic policy gates.
+Keep the request ID, domain version, provider/configuration version, elapsed time and outcome category. Log content only when explicitly enabled for a synthetic evaluation. Confidence is a conservative routing gate in code, not proof of correctness and not a UI dashboard. The local fixture format in `examples/cases.json` describes end-to-end expected behaviour, including deterministic policy gates.
 
 ## Provider integration boundary
 
-The TypeSafe adapter is server-side (`src/server/`). The browser posts a domain `DecisionRequest` to `POST /api/decide`. The adapter maps that onto the official System One `choice` request (`POST /v1/systemone`) using the pinned `@typesafe-ai/sdk` package, then maps the documented `{ type, choice, confidence, probabilities }` answer back to `DecisionResult`. Validate the current request/response shape against the official SDK reference in [sources](SOURCES.md). The rest of the app stays independent of vendor-specific types. No on-device or on-premise Jev runtime is assumed.
+The TypeSafe adapter is server-side (`src/server/`). The browser posts a domain `DecisionRequest` to `POST /api/decide`. The adapter maps that onto one official System One request (`POST /v1/systemone`) using the pinned `@typesafe-ai/sdk` package: a Choice for the allowlisted action plus independent Noul/Score questions (suspicious, unclear, fit) against the same state. Code combines those answers and applies confidence gates (`src/domain/decisionLayer.ts`). Vendor types stay out of the UI. Validate the current request/response shape against the official SDK reference in [sources](SOURCES.md). No on-device or on-premise Jev runtime is assumed.
 
-Retries are disabled on the live path so quota and transport failures fail-open instead of hanging. Missing `TYPESAFE_API_KEY`, HTTP 401, timeout, 429/529, and malformed bodies are operational outcomes, not semantic abstains.
+Retries are disabled on the live path so quota and transport failures fail-open instead of hanging. Missing `TYPESAFE_API_KEY`, HTTP 401, timeout, 429/529, and malformed bodies are operational outcomes, not semantic abstains. Confidence may downgrade a select; it never skips allowlist, `stateVersion`, or Confirm checks.

@@ -1,5 +1,12 @@
 export { validateDecisionResult } from "./contract";
 export { classify, isInjection } from "./classify";
+export {
+  applyConfidenceGate,
+  combineParallelDecision,
+  confidenceBand,
+  DEFAULT_GATE_THRESHOLDS,
+  readGateThresholds,
+} from "./decisionLayer";
 export { confirmExecution } from "./execute";
 export { logOperational } from "./log";
 export { parseFacts } from "./parsers";

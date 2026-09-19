@@ -108,6 +108,34 @@ describe("paste panel smoke", () => {
     expect(screen.queryByText(/TypeSafe|Jev|confidence|taxonomy/i)).not.toBeInTheDocument();
   });
 
+  it("abstains on a low-confidence gate without confidence chrome", async () => {
+    window.history.replaceState({}, "", "/?scenario=low_confidence");
+    render(<App />);
+    await pasteIntoField("Service failed: connection refused on the database socket.");
+    expect(await screen.findByText("Nothing fitting.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Paste field")).not.toBeDisabled();
+    expect(screen.getByText("Pick a safe tool instead:")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save as task" })).toBeInTheDocument();
+    expect(screen.queryByText(/TypeSafe|Jev|confidence|taxonomy|0\.\d+/i)).not.toBeInTheDocument();
+  });
+
+  it("clarifies on a mid-confidence gate and still requires preview → Confirm", async () => {
+    window.history.replaceState({}, "", "/?scenario=mid_confidence");
+    render(<App />);
+    const user = await pasteIntoField("Service failed: connection refused on the database socket.");
+    const actions = await screen.findByLabelText("Suggested actions");
+    expect(within(actions).getAllByRole("button").length).toBeLessThanOrEqual(3);
+    expect(screen.queryByRole("button", { name: "Open log viewer" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/TypeSafe|Jev|confidence|taxonomy/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save as task" }));
+    expect(screen.getByLabelText("Action preview")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(screen.getByRole("status")).toHaveTextContent(/Prepared/);
+    expect(screen.getByLabelText("Local preview")).toHaveTextContent(
+      /No email, calendar, or external API/,
+    );
+  });
+
   it("keeps preview → Confirm on the mock path after a malformed provider response", async () => {
     window.history.replaceState({}, "", "/?scenario=malformed");
     render(<App />);
