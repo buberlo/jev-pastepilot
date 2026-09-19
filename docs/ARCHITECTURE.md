@@ -45,7 +45,7 @@ At runtime validate the complete result, the selected ID against the offered IDs
 
 - Domain core owns state, prerequisites and outcomes.
 - Candidate builder minimises context and excludes prohibited options.
-- Decision provider is replaceable; the mock provider requires no network.
+- Decision provider is replaceable: `mock` and `local` need no network; `jev` is a thin server-side TypeSafe adapter.
 - Execution gate rechecks current-state rules immediately before any action.
 - View/persistence layers display provenance and store only the permitted data.
 
@@ -61,4 +61,6 @@ Keep the request ID, domain version, provider/configuration version, elapsed tim
 
 ## Provider integration boundary
 
-A future TypeSafe adapter is server-side. Validate its current request/response shape against the official SDK reference in [sources](SOURCES.md), keep the dependency pinned through the chosen package manager and leave the rest of the app independent of vendor-specific types. No on-device or on-premise Jev runtime is assumed by this design.
+The TypeSafe adapter is server-side (`src/server/`). The browser posts a domain `DecisionRequest` to `POST /api/decide`. The adapter maps that onto the official System One `choice` request (`POST /v1/systemone`) using the pinned `@typesafe-ai/sdk` package, then maps the documented `{ type, choice, confidence, probabilities }` answer back to `DecisionResult`. Validate the current request/response shape against the official SDK reference in [sources](SOURCES.md). The rest of the app stays independent of vendor-specific types. No on-device or on-premise Jev runtime is assumed.
+
+Retries are disabled on the live path so quota and transport failures fail-open instead of hanging. Missing `TYPESAFE_API_KEY`, HTTP 401, timeout, 429/529, and malformed bodies are operational outcomes, not semantic abstains.

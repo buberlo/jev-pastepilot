@@ -127,7 +127,7 @@ describe("content routing", () => {
     expect(outcome.primaryActionId).toBe("open_log_viewer");
   });
 
-  it("does not call a live Jev adapter when jev is selected", async () => {
+  it("fail-opens to manual tools when jev is selected without a key", async () => {
     const outcome = await routePaste("Service failed: connection refused on the database socket.", {
       provider: "jev",
     });

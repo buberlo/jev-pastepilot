@@ -95,6 +95,35 @@ describe("paste panel smoke", () => {
     expect(screen.queryByText(/TypeSafe|Jev|confidence/i)).not.toBeInTheDocument();
   });
 
+  it("fail-opens when live Jev is selected without a key", async () => {
+    window.history.replaceState({}, "", "/?provider=jev");
+    render(<App />);
+    await pasteIntoField("Service failed: connection refused on the database socket.");
+    expect(await screen.findByText("Couldn't decide.")).toBeInTheDocument();
+    const field = screen.getByLabelText("Paste field");
+    expect(field).toHaveValue("Service failed: connection refused on the database socket.");
+    expect(field).not.toBeDisabled();
+    expect(screen.getByText("Pick a safe tool instead:")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save as task" })).toBeInTheDocument();
+    expect(screen.queryByText(/TypeSafe|Jev|confidence|taxonomy/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps preview → Confirm on the mock path after a malformed provider response", async () => {
+    window.history.replaceState({}, "", "/?scenario=malformed");
+    render(<App />);
+    const user = await pasteIntoField("An app that lets me assemble virtual model kits.");
+    expect(await screen.findByText("Couldn't decide.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Paste field")).not.toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Save idea" }));
+    expect(screen.getByLabelText("Action preview")).toBeInTheDocument();
+    expect(screen.queryByText(/Prepared/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(screen.getByRole("status")).toHaveTextContent(/Prepared/);
+    expect(screen.getByLabelText("Local preview")).toHaveTextContent(
+      /No email, calendar, or external API/,
+    );
+  });
+
   it("shows parsed date hints in the event preview and still requires Confirm", async () => {
     render(<App />);
     const user = await pasteIntoField("Lass uns morgen um 15:00 über das Projekt sprechen.");

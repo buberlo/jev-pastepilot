@@ -4,11 +4,13 @@ Explicit paste-to-action launcher that routes text to useful tools without autom
 
 ## Status
 
-**Share-slice is implemented:** the MS2 offline app accepts shared text via `?text=` / `?q=` (and a local `POST /share` target) and a thin macOS Services / Shortcuts wrapper opens that URL. Milestone 2’s decision contract, parsers, and adapters are unchanged.
+**Milestone 3 is implemented:** a server-side TypeSafe Jev adapter behind the existing `mock` | `local` | `jev` boundary, with fail-open behaviour and recorded HTTP fixture tests. The Share-slice (URL ingest + thin Mac wrapper) and the MS2 decision contract stay in place.
 
-There are still no live Jev calls, no TypeSafe client, and no deployment. Milestone 3 (live provider) is not done.
+The UI is still one paste page: ≤3 action buttons, preview → Confirm. No taxonomy, confidence, or provider chrome.
 
-A milestone is complete only when its behaviour can be reproduced locally. This slice can: `npm install`, `npm run dev`, `npm test`, and `npm run build`.
+A milestone is complete only when its behaviour can be reproduced locally. This tree can: `npm install`, `npm run dev`, `npm test`, and `npm run build`.
+
+Live accuracy is **not** claimed here. This environment had no `TYPESAFE_API_KEY`, so no live TypeSafe call was made. Adapter tests use mocked HTTP fixtures. A live E2E test exists and is skipped without a local key.
 
 ## Product
 
@@ -16,15 +18,13 @@ One page. A large paste field. After paste **or Share**, at most three large act
 
 Pasted or shared text is untrusted data. Content kinds stay internal; the UI never shows a taxonomy, confidence score, or provider chrome.
 
-End-state is a context menu / Share surface (Phone Share Sheet + Mac Services). Web paste stays the prototype core. This slice makes select/copy → ≤3 actions feel native on Mac without rebuilding the decision engine.
-
 ### Example experience
 
 Paste or Share a service startup error. The interface offers a log viewer (and a docs search when that tool is allowlisted). A meeting proposal offers **Draft event** only. Confirm opens a local stub. Nothing is sent or scheduled.
 
 ### Model boundary
 
-Semantic responsibility (mock or local in MS2): classify pasted text and choose one allowlisted action.
+Semantic responsibility: classify pasted text and choose one allowlisted action (`mock`, `local`, or live `jev`).
 
 Code remains authoritative for: exact URL/date/time/parameter parsing, the DecisionResult contract, permissions, confirmation, and execution. Parsed values feed the preview; they never invent a send or schedule.
 
@@ -39,7 +39,76 @@ npm run dev
 
 Open the URL Vite prints (typically `http://localhost:5173`). Paste with Ctrl+V / Cmd+V or the Paste button. There is no background clipboard watcher.
 
-Share ingest (same mock routing, still preview → Confirm):
+Default provider is **mock**. No API key is required.
+
+```sh
+npm test
+npm run build
+python3 scripts/validate_scaffold.py
+```
+
+`pnpm install` / `pnpm test` / `pnpm dev` also work if you prefer pnpm; this repo commits the npm lockfile (`package-lock.json`).
+
+### Enable live Jev
+
+1. Copy [`.env.example`](.env.example) to a local `.env` (gitignored). Never commit a real key.
+2. Set the server credential only:
+
+```sh
+export TYPESAFE_API_KEY=…   # do not commit, do not log
+```
+
+3. Switch the provider (query wins; env is the default when the query is omitted):
+
+```sh
+# one-off in the URL
+http://localhost:5173/?provider=jev
+
+# or start with an env default (still no UI chrome)
+DECISION_PROVIDER=jev TYPESAFE_API_KEY=… npm run dev
+```
+
+The browser never sees the key. It posts a domain `DecisionRequest` to local `POST /api/decide`. The Vite server adapter uses pinned `@typesafe-ai/sdk@0.6.0` and `TypeSafeClient.systemOne` (`choice` question). Documented default model: `jev-latest` (currently `jev-1.13.0`). Override with `TYPESAFE_MODEL` if you pin a version.
+
+Selecting `jev` sends the pasted text to TypeSafe for routing only. Confirm still stays on the local stub: no email, calendar, or other external write.
+
+**Measure live accuracy yourself.** Do not treat a vendor claim, confidence score, or this README as a measured result. If you run a live call, record the SDK version (`0.6.0`) and the response `model` field with the sample.
+
+Live E2E (skipped without a key):
+
+```sh
+TYPESAFE_API_KEY=… npm test
+```
+
+See `src/test/jev.live.test.ts` — marked **requires local key**.
+
+### Switch provider
+
+| How | Result |
+| --- | --- |
+| *(default)* | `mock` — offline heuristic, no key, no network |
+| `?provider=local` or `DECISION_PROVIDER=local` | Same offline heuristic, labelled `local` (optional SemIf stand-in; no GPU) |
+| `?provider=jev` or `DECISION_PROVIDER=jev` | Live adapter via `/api/decide` |
+
+Without a key, `jev` fail-opens: the field stays editable and the page offers the safe manual tools. It does not crash and does not pretend a live success.
+
+### Failure-path demos
+
+The page stays one paste field. These query flags wrap the adapter for local checks. They combine with share ingest:
+
+```
+http://localhost:5173/?scenario=timeout
+http://localhost:5173/?scenario=malformed
+http://localhost:5173/?scenario=quota
+http://localhost:5173/?scenario=stale
+http://localhost:5173/?provider=local
+http://localhost:5173/?provider=jev
+http://localhost:5173/?scenario=timeout&text=Service%20failed
+```
+
+On timeout, malformed output, quota, stale `stateVersion`, missing key, or an invalid contract, the text stays editable and the page offers the same safe manual tools.
+
+Share ingest (same routing, still preview → Confirm):
 
 ```
 http://localhost:5173/?text=Service%20failed%3A%20connection%20refused%20on%20the%20database%20socket.
@@ -52,30 +121,6 @@ curl -sS -D - -o /dev/null -X POST \
   --data-urlencode "text=An app that lets me assemble virtual model kits." \
   http://localhost:5173/share
 ```
-
-```sh
-npm test
-npm run build
-python3 scripts/validate_scaffold.py
-```
-
-`pnpm install` / `pnpm test` / `pnpm dev` also work if you prefer pnpm; this repo commits the npm lockfile (`package-lock.json`).
-
-The mock and local providers need no API key. Do not set or commit `TYPESAFE_API_KEY`. The app never reads that value and never logs it.
-
-### Failure-path demos
-
-The page stays one paste field. These query flags only wrap the offline adapter for local checks. They combine with share ingest:
-
-```
-http://localhost:5173/?scenario=timeout
-http://localhost:5173/?scenario=malformed
-http://localhost:5173/?scenario=stale
-http://localhost:5173/?provider=local
-http://localhost:5173/?scenario=timeout&text=Service%20failed
-```
-
-On timeout, malformed output, stale `stateVersion`, or an invalid contract, the text stays editable and the page offers the same safe manual tools.
 
 ## macOS Share / Services
 
@@ -92,29 +137,26 @@ Select text → Services / Shortcut → browser opens with the field filled and 
 
 `--clipboard` on the shell script is an explicit flag only. No passive clipboard surveillance.
 
-## Windows
-
-Later: a tray app or Share target can open the same `/?text=` URL. **Not built in this slice.**
-
 ## What is done vs next
 
 | Slice | Status |
 | --- | --- |
-| **MS1** — offline paste panel, ≤3 actions, preview → Confirm | Done |
-| **MS2** — parsers, DecisionResult contract, replaceable adapter, failure paths | Done (unchanged) |
+| **MS1** — offline paste page, ≤3 actions, preview → Confirm | Done |
+| **MS2** — parsers, DecisionResult contract, replaceable adapter, failure paths | Done |
 | **Share-slice** — URL / `POST /share` ingest + thin Mac Services / Shortcuts wrapper | Done |
-| **MS3** — live Jev adapter, measured comparison, local provider still selectable | Not started |
+| **MS3** — server-side Jev adapter, fail-open, fixture tests, local provider still selectable | Done |
+| **North-star** — real signed Mac `.app`, Windows tray / Share target, more tool integrations | Not started |
 
 See [docs/MVP.md](docs/MVP.md).
 
-## Milestone 2 contract (still in this tree)
+## Milestone 3 in this tree
 
-- Exact local parsers for URLs, dates/times, and emails, separate from classification.
-- Hard allowlisted action IDs. `DecisionResult` is validated in full: matching `requestId` / `stateVersion`, select requires an offered allowlisted ID, clarify/abstain carry no action.
-- Replaceable adapter: `mock` (default), `local` (same offline heuristic), and a `jev` stub that is not configured. No live TypeSafe/Jev/SemIf calls.
-- Fixture paths in `examples/cases.json` for select, clarify, abstain, empty, injection, timeout, malformed, and stale state.
-- Provider failures leave the field editable and show a manual safe-tool list. They are not reported as semantic abstains.
-- Execution gate rechecks state immediately before the local stub. Confirm is still required. The stub does not email, write a calendar, or call an external API.
+- Server-side TypeSafe adapter (`src/server/`) behind `createProvider("jev")`. The UI imports no `@typesafe-ai/sdk` types.
+- Credentials from `TYPESAFE_API_KEY` only. Never committed. Never logged. Paste contents are not logged by default (`logLevel: "off"` on the SDK client).
+- Fail-open on missing key, timeout, quota, and malformed System One responses.
+- `local` remains selectable; no GPU required. Default without a key: `mock`.
+- Pinned SDK `@typesafe-ai/sdk@0.6.0`. Documented model `jev-latest` / `jev-1.13.0`. No live call was made in the agent environment.
+- Confirm is still required. The stub does not email, write a calendar, or call an external API.
 
 ## Repository map
 
@@ -131,10 +173,10 @@ See [docs/MVP.md](docs/MVP.md).
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Parsers, contract, routing, failure paths, URL/share ingest, Mac wrapper URL, UI smoke |
-| `python3 scripts/validate_scaffold.py` | Fixture structure and local documentation links |
+| `npm test` | Parsers, contract, routing, failure paths, Jev adapter fixtures, URL/share ingest, Mac wrapper URL, UI smoke |
+| `python3 scripts/validate_scaffold.py` | Fixture structure, local documentation links, SDK stays server-side |
 
-These checks do **not** measure live-model accuracy or contact TypeSafe.
+These checks do **not** measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.
 
 Out of scope: passive clipboard surveillance, autonomous browsing, automatic email sending, and a general-purpose shell.
 

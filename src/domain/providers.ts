@@ -1,5 +1,9 @@
+import { createJevHttpProvider } from "./jevHttp";
 import { heuristicDecide } from "./mockProvider";
+import { ProviderQuotaError } from "./providerErrors";
 import type { DecisionProviderId, DecisionRequest } from "./types";
+
+export { ProviderNotConfiguredError, ProviderQuotaError } from "./providerErrors";
 
 export const DECISION_SCENARIOS = [
   "none",
@@ -8,18 +12,10 @@ export const DECISION_SCENARIOS = [
   "stale",
   "unknown_action",
   "select_without_id",
+  "quota",
 ] as const;
 
 export type DecisionScenario = (typeof DECISION_SCENARIOS)[number];
-
-export class ProviderNotConfiguredError extends Error {
-  readonly failure = "not_configured" as const;
-
-  constructor(message = "Live Jev is not part of Milestone 2.") {
-    super(message);
-    this.name = "ProviderNotConfiguredError";
-  }
-}
 
 export type DecisionProvider = {
   readonly id: DecisionProviderId;
@@ -49,13 +45,15 @@ function heuristicProvider(id: Exclude<DecisionProviderId, "jev">): DecisionProv
   };
 }
 
+/** Tests replace the browser HTTP client with the in-process server adapter. */
+let jevOverride: DecisionProvider | null = null;
+
+export function setJevProviderOverride(provider: DecisionProvider | null): void {
+  jevOverride = provider;
+}
+
 function jevProvider(): DecisionProvider {
-  return {
-    id: "jev",
-    async decide() {
-      throw new ProviderNotConfiguredError();
-    },
-  };
+  return jevOverride ?? createJevHttpProvider();
 }
 
 export function createProvider(id: DecisionProviderId): DecisionProvider {
@@ -90,6 +88,9 @@ export function wrapProvider(
     async decide(request, signal) {
       if (scenario === "timeout") {
         return waitForAbort(signal);
+      }
+      if (scenario === "quota") {
+        throw new ProviderQuotaError();
       }
       if (scenario === "malformed") {
         return { not: "a decision" };

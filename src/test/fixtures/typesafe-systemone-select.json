@@ -1,0 +1,40 @@
+{
+  "comment": "Recorded against the official POST /v1/systemone choice shape. Not a live response. No credentials.",
+  "request": {
+    "model": "jev-latest",
+    "state": {
+      "pasted_text": "Service failed: connection refused on the database socket.",
+      "parsed": {}
+    },
+    "questions": {
+      "action": {
+        "type": "choice",
+        "instructions": "Which allowlisted PastePilot action fits the pasted text?",
+        "criteria": {
+          "open_log_viewer": "Open a local preview of the pasted log text.",
+          "abstain": "Nothing fitting. Do not select a tool.",
+          "clarify": "The text is ambiguous. The user should pick a safe local tool."
+        }
+      }
+    }
+  },
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "action": {
+        "type": "choice",
+        "choice": "open_log_viewer",
+        "probabilities": {
+          "open_log_viewer": 0.86,
+          "abstain": 0.09,
+          "clarify": 0.05
+        },
+        "confidence": 0.81
+      }
+    },
+    "usage": {
+      "input_tokens": 120,
+      "output_tokens": 8
+    }
+  }
+}

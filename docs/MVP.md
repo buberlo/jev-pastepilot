@@ -21,20 +21,18 @@ Implemented behaviour:
 
 - Exact URL, date/time, and email parsers feed previews and Confirm. They do not invent send or schedule actions.
 - `DecisionResult` is validated in full against the current request: `requestId` and `stateVersion` must match, a `select` needs an offered allowlisted ID, and `clarify` / `abstain` carry no action.
-- Adapter interface: `mock` | `local` | future `jev`. The mock stays the default. The `jev` adapter is not configured and makes no network calls. No API key is required.
-- Deterministic fixtures for select, clarify, abstain, empty, injection, timeout, malformed output, and stale `stateVersion`.
+- Adapter interface: `mock` | `local` | `jev`. The mock stays the default.
+- Deterministic fixtures for select, clarify, abstain, empty, injection, timeout, malformed output, quota, and stale `stateVersion`.
 - Provider failures leave the text editable and offer the manual safe-tool list. Those outcomes are operational, not semantic abstains.
 - The execution gate rechecks state immediately before the local stub. Confirm is still required.
 
-This is still not a live Jev integration.
-
 ## Share-slice — Mac Services / URL ingest
 
-**Done in this repository.** A thin Share path into the MS2 web app. The decision engine is not rebuilt. Web paste stays the prototype core.
+**Done in this repository.** A thin Share path into the web app. The decision engine is not rebuilt. Web paste stays the prototype core.
 
 Implemented behaviour:
 
-- The Vite/React app accepts shared text via `?text=` / `?q=` and pre-fills the paste field, then auto-runs the same mock routing.
+- The Vite/React app accepts shared text via `?text=` / `?q=` and pre-fills the paste field, then auto-runs the same routing.
 - A local `POST /share` (form, JSON, or plain text) redirects to the same ingest URL. Share Target–style fields: `text`, `q`, or `url`.
 - Nothing auto-executes. Preview → Confirm is unchanged.
 - `macos/` ships a shell wrapper, an Automator/Services AppleScript, Shortcuts install steps, and optional Swift Service source. A full `.app` cannot be built on the Linux cloud VM; the URL ingest proves the loop.
@@ -45,15 +43,28 @@ Install and run: [README](../README.md) and [macos/README.md](../macos/README.md
 
 ## Milestone 3 — Live adapter and measured comparison
 
-**Not started.** Integrate Jev and evaluate routing. Add individual external integrations only when their permission and confirmation flows exist.
+**Done in this repository (adapter + fail-open + fixture tests).** A server-side TypeSafe Jev adapter sits behind the existing `mock` | `local` | `jev` boundary. The UI is unchanged: one paste page, ≤3 buttons, preview → Confirm. No taxonomy, confidence, or provider chrome.
 
-Record the tested SDK/model version and configuration. Keep the local provider selectable. Report measured accuracy, abstention behaviour, latency and request volume separately; do not substitute a vendor claim for a measurement.
+Implemented behaviour:
 
-The Share-slice does not include a live provider.
+- `@typesafe-ai/sdk` is pinned at **0.6.0**. The adapter calls `TypeSafeClient.systemOne` with a documented `choice()` question. Vendor types do not leak into the UI.
+- Credentials are read only from the server environment (`TYPESAFE_API_KEY`). The browser posts `DecisionRequest` to local `POST /api/decide`. The key is never committed and never logged. Paste contents are not logged by default.
+- Fail-open: missing key, timeout, quota/rate-limit, or a malformed System One body leaves the text editable and shows the safe manual-tool list. The app does not crash and does not pretend a live success.
+- `local` remains the optional SemIf/offline heuristic. No 4B GPU is required. Default for demos without a key: `mock`.
+- Live accuracy is **not** claimed. Recorded HTTP fixtures cover adapter validation. A live E2E test exists and is skipped unless `TYPESAFE_API_KEY` is set locally (`src/test/jev.live.test.ts`).
+- Confirm is still required. The stub still does not email, write a calendar, or call an external API. Pasted content remains untrusted data.
+
+This environment did **not** make a live TypeSafe call (no key present). Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Measure routing on your own labelled set; do not substitute a vendor claim.
+
+### Remaining north-star (not MS3)
+
+- A real signed Mac `.app` / production Services build (the Share-slice is a thin wrapper + URL ingest).
+- A Windows tray / Share target that opens the same `/?text=` URL.
+- More tool integrations, each with its own permission and confirmation flow.
 
 ## Acceptance criteria
 
-- Pasting or sharing alone never executes a tool or transmits data to an unrelated service.
+- Pasting or sharing alone never executes a tool or transmits data to an unrelated service. Selecting `jev` sends the paste to TypeSafe for routing only, via the local server adapter.
 - Date, URL and parameter values come from parsers or explicit confirmation.
 - Commands embedded in pasted content cannot expand permissions.
 - Provider errors leave the text editable and allow manual tool selection.
@@ -65,4 +76,4 @@ Passive clipboard surveillance, autonomous browsing, automatic email sending and
 
 ## Delivery boundary
 
-Milestones 1 and 2 and the Share-slice are implemented and can be reproduced with the README commands. Milestone 3 remains future work until its behaviour can be reproduced locally and recorded in the README.
+Milestones 1–3 and the Share-slice are implemented and can be reproduced with the README commands. Remaining north-star surfaces are not part of this milestone.

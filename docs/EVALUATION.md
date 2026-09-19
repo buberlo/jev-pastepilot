@@ -4,16 +4,19 @@ The included JSON cases are **hand-labelled synthetic acceptance examples**, not
 
 ## Layers
 
-1. The current `scripts/validate_scaffold.py` checks example structure and local documentation links only.
+1. The current `scripts/validate_scaffold.py` checks example structure, local documentation links, and that the TypeSafe SDK stays out of client source.
 2. Domain tests in `src/test/` enforce the deterministic acceptance criteria in [MVP](MVP.md), including the labelled cases in `examples/cases.json`. Coverage includes parsers, DecisionResult validation, routing, operational failure paths, and URL/share ingest. UI smoke lives in `src/test/App.test.tsx` and `src/test/shareIngest.test.tsx`.
-3. Provider tests compare held-out inputs with expected semantic results; preserve both German and English examples and add real user phrasing only with appropriate data handling. Milestone 2 still uses the offline mock/local adapters only.
-4. End-to-end tests cover timeout, malformed output, stale versions, ineligible candidates and the manual/offline path.
+3. Provider tests compare held-out inputs with expected semantic results for the offline mock/local adapters. The Jev adapter is tested with recorded/mocked HTTP fixtures that match the official System One choice shape (`src/test/jevAdapter.test.ts`, `src/test/fixtures/`).
+4. End-to-end tests cover timeout, malformed output, quota, stale versions, missing key, ineligible candidates and the manual/offline path.
+5. **Live E2E (requires local key):** `src/test/jev.live.test.ts` is skipped unless `TYPESAFE_API_KEY` is set. It is not run in this agent environment and is not a vendor accuracy claim.
 
 ## Measurements
 
 Measure correct selections, incorrect actions, abstentions and clarifications separately. Report sample counts and class balance; include precision/recall where meaningful. Distinguish model classification errors from execution-gate rejection. A correct abstention on a forbidden action is not a failed positive prediction.
 
 Collect p50 and p95 wall-clock latency at the application boundary, request/token totals where exposed and failures by category. Report actual observed usage rather than assumed token cost. Compare the semantic provider with the deterministic baseline on the same inputs.
+
+Live Jev accuracy **must be measured** on a labelled set. Do not substitute a TypeSafe or Jev marketing claim for that measurement. Vendor `confidence` is logged only as an optional DecisionResult field and is never shown in the UI or used as a policy gate.
 
 ## Release gate
 
@@ -23,4 +26,4 @@ Collect p50 and p95 wall-clock latency at the application boundary, request/toke
 - Provider errors leave the text editable and allow manual tool selection.
 - No clipboard content is retained in logs by default.
 
-Choose quantitative thresholds after a labelled pilot rather than inventing a universal confidence cutoff. Do not claim production readiness from the seed cases. Milestone 2 records deterministic mock/local-test coverage only; no live-provider evaluation is claimed.
+Choose quantitative thresholds after a labelled pilot rather than inventing a universal confidence cutoff. Do not claim production readiness from the seed cases. Milestone 3 records adapter + fail-open fixture coverage; no live-provider accuracy is claimed in this repository.

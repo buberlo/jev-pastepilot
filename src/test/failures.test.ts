@@ -64,7 +64,7 @@ describe("provider adapter", () => {
     const local = await createProvider("local").decide(request);
     expect(mock).toMatchObject({ provider: "mock", actionId: "open_log_viewer" });
     expect(local).toMatchObject({ provider: "local", actionId: "open_log_viewer" });
-    await expect(createProvider("jev").decide(request)).rejects.toThrow(/Milestone 2/);
+    await expect(createProvider("jev").decide(request)).rejects.toThrow(/not configured/i);
   });
 
   it("wraps the mock for deterministic malformed output", async () => {

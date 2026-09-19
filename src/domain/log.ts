@@ -1,9 +1,8 @@
 const SECRET_NAME = /api[_-]?key|authorization|password|secret|token|typesafe/i;
-const SECRET_VALUE = /TYPESAFE_API_KEY/i;
 
 function redact(value: unknown): unknown {
   if (typeof value === "string") {
-    return SECRET_VALUE.test(value) ? "[redacted]" : value;
+    return value;
   }
   if (Array.isArray(value)) {
     return value.map(redact);

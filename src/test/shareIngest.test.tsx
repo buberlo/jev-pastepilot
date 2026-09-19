@@ -53,6 +53,19 @@ describe("URL / share ingest", () => {
     expect(screen.getByLabelText("Local preview")).toHaveTextContent(/No email, calendar, or external API/);
   });
 
+  it("fail-opens share ingest when provider=jev has no key", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/?provider=jev&text=Service%20failed%3A%20connection%20refused%20on%20the%20database%20socket.",
+    );
+    render(<App />);
+    expect(await screen.findByText("Couldn't decide.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Paste field")).not.toBeDisabled();
+    expect(screen.getByText("Pick a safe tool instead:")).toBeInTheDocument();
+    expect(screen.queryByText(/TypeSafe|Jev|confidence/i)).not.toBeInTheDocument();
+  });
+
   it("keeps MS2 failure flags when share text is also present", async () => {
     window.history.replaceState(
       {},

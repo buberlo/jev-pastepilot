@@ -7,6 +7,7 @@ import {
   isProviderId,
   isScenario,
   ProviderNotConfiguredError,
+  ProviderQuotaError,
   wrapProvider,
   type DecisionScenario,
 } from "./providers";
@@ -19,6 +20,7 @@ import {
   offeredToolIds,
 } from "./tools";
 import {
+  JEV_TIMEOUT_MS,
   PROVIDER_TIMEOUT_MS,
   type DecisionProviderId,
   type OperationalFailure,
@@ -43,6 +45,11 @@ export function newRequestId(): string {
   return crypto.randomUUID();
 }
 
+function envProvider(): DecisionProviderId {
+  const value = typeof __PASTEPILOT_PROVIDER__ === "string" ? __PASTEPILOT_PROVIDER__ : "mock";
+  return isProviderId(value) ? value : "mock";
+}
+
 export function readDemoOptions(search = ""): {
   provider: DecisionProviderId;
   scenario: DecisionScenario;
@@ -51,7 +58,7 @@ export function readDemoOptions(search = ""): {
   const providerRaw = params.get("provider");
   const scenarioRaw = params.get("scenario");
   return {
-    provider: isProviderId(providerRaw) ? providerRaw : "mock",
+    provider: isProviderId(providerRaw) ? providerRaw : envProvider(),
     scenario: isScenario(scenarioRaw) ? scenarioRaw : "none",
   };
 }
@@ -67,7 +74,8 @@ export async function routePaste(input: string, options: RouteOptions = {}): Pro
   const stateVersion = options.stateVersion ?? newStateVersion();
   const providerId = options.provider ?? "mock";
   const scenario = options.scenario ?? "none";
-  const timeoutMs = options.timeoutMs ?? PROVIDER_TIMEOUT_MS;
+  const timeoutMs =
+    options.timeoutMs ?? (providerId === "jev" ? JEV_TIMEOUT_MS : PROVIDER_TIMEOUT_MS);
   const candidates = catalogueCandidates(options.availableActions);
   const parsed = parseFacts(input);
   const offered = offeredToolIds(candidates);
@@ -165,6 +173,15 @@ export async function routePaste(input: string, options: RouteOptions = {}): Pro
         elapsedMs: Date.now() - started,
       });
       return failed("not_configured");
+    }
+    if (error instanceof ProviderQuotaError) {
+      logOperational("decision_quota", {
+        requestId,
+        stateVersion,
+        provider: providerId,
+        elapsedMs: Date.now() - started,
+      });
+      return failed("quota");
     }
     logOperational("decision_error", {
       requestId,
