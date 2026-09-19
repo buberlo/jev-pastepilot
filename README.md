@@ -127,4 +127,4 @@ These checks do not measure live-model accuracy. They do not contact TypeSafe un
 
 ## Licence
 
-No software licence has been published. Until one is, this repository is **all rights reserved**. Do not treat the absence of a `LICENSE` file as an open-source grant.
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
