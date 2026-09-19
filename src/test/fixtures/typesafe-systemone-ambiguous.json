@@ -1,0 +1,45 @@
+{
+  "comment": "Live-shaped ambiguous paste: Choice capture_task at ~0.82. Local policy should clarify. Not a live response. No credentials.",
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "action": {
+        "type": "choice",
+        "choice": "capture_task",
+        "probabilities": {
+          "capture_task": 0.48,
+          "capture_idea": 0.39,
+          "clarify": 0.13
+        },
+        "confidence": 0.82
+      },
+      "suspicious": {
+        "type": "noul",
+        "noul": 0.04
+      },
+      "unclear": {
+        "type": "noul",
+        "noul": 0.22
+      },
+      "fit": {
+        "type": "score",
+        "score": 1.72,
+        "confidence": 0.7,
+        "legend": {
+          "0": "No fit. Nothing on the allowlist matches this text.",
+          "1": "Weak or ambiguous fit. Several actions could apply, or the text is unclear.",
+          "2": "Clear fit for one allowlisted action."
+        },
+        "probabilities": {
+          "0": 0.06,
+          "1": 0.16,
+          "2": 0.78
+        }
+      }
+    },
+    "usage": {
+      "input_tokens": 140,
+      "output_tokens": 14
+    }
+  }
+}

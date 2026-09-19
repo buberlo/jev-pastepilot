@@ -1,7 +1,9 @@
 export { validateDecisionResult } from "./contract";
 export { classify, isInjection } from "./classify";
 export {
+  applyAmbiguityOverride,
   applyConfidenceGate,
+  choiceMargin,
   combineParallelDecision,
   confidenceBand,
   DEFAULT_GATE_THRESHOLDS,

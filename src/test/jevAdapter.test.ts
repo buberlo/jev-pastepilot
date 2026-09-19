@@ -4,6 +4,7 @@ import abstainFixture from "./fixtures/typesafe-systemone-abstain.json";
 import malformedFixture from "./fixtures/typesafe-systemone-malformed.json";
 import parallelFixture from "./fixtures/typesafe-systemone-parallel.json";
 import lowConfidenceFixture from "./fixtures/typesafe-systemone-low-confidence.json";
+import ambiguousFixture from "./fixtures/typesafe-systemone-ambiguous.json";
 import { validateDecisionResult } from "../domain/contract";
 import { logOperational } from "../domain/log";
 import { ProviderNotConfiguredError, ProviderQuotaError } from "../domain/providerErrors";
@@ -109,6 +110,53 @@ describe("System One mapping", () => {
     expect(validateDecisionResult(decision, request).ok).toBe(true);
   });
 
+  it("forces clarify on an ambiguous paste even when Choice confidence is high", () => {
+    const ambiguousRequest: DecisionRequest = {
+      ...request,
+      input: "Handle this.",
+      candidates: [
+        { id: "capture_task", description: "Save the text as a local task draft." },
+        { id: "capture_idea", description: "Save the text as a local idea draft." },
+      ],
+    };
+    const decision = decisionFromSystemOne(ambiguousFixture.response, ambiguousRequest);
+    expect(decision.status).toBe("clarify");
+    expect(decision.actionId).toBeNull();
+    expect(decision.confidence).toBe(0.82);
+    expect(validateDecisionResult(decision, ambiguousRequest).ok).toBe(true);
+  });
+
+  it("still keeps a high-confidence select on a clear error log", () => {
+    const decision = decisionFromSystemOne(parallelFixture.response, request);
+    expect(decision.status).toBe("select");
+    expect(decision.actionId).toBe("open_log_viewer");
+    expect(decision.confidence).toBe(0.84);
+  });
+
+  it("clarifies a peaked-looking Choice when the unclear Noul is high", () => {
+    const raw = {
+      model: "jev-1.13.0",
+      answers: {
+        action: {
+          type: "choice",
+          choice: "open_log_viewer",
+          confidence: 0.82,
+          probabilities: {
+            open_log_viewer: 0.8,
+            abstain: 0.12,
+            clarify: 0.08,
+          },
+        },
+        suspicious: { type: "noul", noul: 0.04 },
+        unclear: { type: "noul", noul: 0.78 },
+        fit: { type: "score", score: 1.8 },
+      },
+    };
+    const decision = decisionFromSystemOne(raw, request);
+    expect(decision.status).toBe("clarify");
+    expect(decision.actionId).toBeNull();
+  });
+
   it("downgrades a select when the suspicious Noul is high", () => {
     const raw = {
       model: "jev-1.13.0",
@@ -126,6 +174,25 @@ describe("System One mapping", () => {
     const decision = decisionFromSystemOne(raw, request);
     expect(decision.status).toBe("abstain");
     expect(decision.actionId).toBeNull();
+  });
+
+  it("rejects malformed Choice probabilities instead of guessing", () => {
+    expect(() =>
+      decisionFromSystemOne(
+        {
+          model: "jev-1.13.0",
+          answers: {
+            action: {
+              type: "choice",
+              choice: "open_log_viewer",
+              confidence: 0.9,
+              probabilities: { open_log_viewer: "high" },
+            },
+          },
+        },
+        request,
+      ),
+    ).toThrow(JevMappingError);
   });
 
   it("rejects a malformed extra answer instead of guessing", () => {

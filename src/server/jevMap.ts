@@ -1,3 +1,4 @@
+import { classify } from "../domain/classify";
 import {
   combineParallelDecision,
   DEFAULT_GATE_THRESHOLDS,
@@ -207,6 +208,23 @@ function parseScore(raw: unknown): number | undefined {
   return value;
 }
 
+function parseProbabilities(raw: unknown): Record<string, number> | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (!isRecord(raw)) {
+    throw new JevMappingError();
+  }
+  const next: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1) {
+      throw new JevMappingError();
+    }
+    next[key] = value;
+  }
+  return next;
+}
+
 function actionStatus(choice: string): { status: DecisionStatus; actionId: string | null } {
   if (choice === ABSTAIN_OPTION) {
     return { status: "abstain", actionId: null };
@@ -239,10 +257,13 @@ export function decisionFromSystemOne(
   }
 
   const confidence = optionalConfidence(action.confidence);
+  const kind = classify(request.input);
   const signals: ParallelSignals = {
     suspicious: parseNoul(raw.answers[SUSPICIOUS_QUESTION]),
     unclear: parseNoul(raw.answers[UNCLEAR_QUESTION]),
     fit: parseScore(raw.answers[FIT_QUESTION]),
+    ambiguous: kind === "ambiguous",
+    choiceProbabilities: parseProbabilities(action.probabilities),
   };
 
   const mapped = actionStatus(action.choice);
