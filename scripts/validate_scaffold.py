@@ -35,7 +35,7 @@ def validate() -> int:
         if expected['status'] == 'failed' and not expected.get('failure'):
             errors.append(f'{cid}: failed cases must name an operational failure')
         scenario = item.get('scenario')
-        if scenario is not None and scenario not in {'timeout', 'malformed', 'stale', 'unknown_action', 'select_without_id', 'quota'}:
+        if scenario is not None and scenario not in {'timeout', 'malformed', 'stale', 'unknown_action', 'select_without_id', 'quota', 'low_confidence', 'mid_confidence'}:
             errors.append(f'{cid}: unknown scenario')
     skip_parts = {'.git', 'node_modules', 'dist', 'coverage'}
     sdk_skip = skip_parts | {'server', 'test'}

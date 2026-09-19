@@ -50,22 +50,26 @@ http://localhost:5173/?provider=jev
 http://localhost:5173/?scenario=timeout
 http://localhost:5173/?scenario=malformed
 http://localhost:5173/?scenario=quota
+http://localhost:5173/?scenario=low_confidence
+http://localhost:5173/?scenario=mid_confidence
 ```
 
 ## Milestone 3 — Live adapter and measured comparison
 
-**Done in this repository (adapter + fail-open + fixture tests).** A server-side TypeSafe Jev adapter sits behind the existing `mock` | `local` | `jev` boundary. The UI is unchanged: one paste page, ≤3 buttons, preview → Confirm. No taxonomy, confidence, or provider chrome.
+**Done in this repository (adapter + fail-open + fixture tests).** A server-side TypeSafe Jev adapter sits behind the existing `mock` | `local` | `jev` boundary. The UI is unchanged: one paste page, ≤3 buttons, preview → Confirm. No taxonomy, confidence dashboard, or provider chrome.
 
 Implemented behaviour:
 
-- `@typesafe-ai/sdk` is pinned at **0.6.0**. The adapter calls `TypeSafeClient.systemOne` with a documented `choice()` question. Vendor types do not leak into the UI.
+- `@typesafe-ai/sdk` is pinned at **0.6.0**. The adapter calls `TypeSafeClient.systemOne` with independent questions against the same paste state: a `choice()` for the allowlisted action, a `noul()` for injection/suspicion, a `noul()` for emptiness/clarity, and a `score()` for fit. Vendor types do not leak into the UI.
+- Answers are combined in **code**, not in one mega-prompt. Parallel signals can only downgrade a select (never invent or upgrade an action).
+- Confidence gates in code: high (≥ `JEV_CONFIDENCE_HIGH`, default 0.75) may keep a contract-valid select; mid prefers clarify / safer tools; low (< `JEV_CONFIDENCE_LOW`, default 0.45) abstains to the manual list. Thresholds are constants, overridable via env, and covered by tests. Confidence is not proof of correctness — allowlisted IDs, `stateVersion`, and Confirm still apply.
 - Credentials are read only from the server environment (`TYPESAFE_API_KEY`). The browser posts `DecisionRequest` to local `POST /api/decide`. The key is never committed and never logged. Paste contents are not logged by default.
 - Fail-open: missing key, timeout, quota/rate-limit, or a malformed System One body leaves the text editable and shows the safe manual-tool list. The app does not crash and does not pretend a live success.
 - `local` remains the optional SemIf/offline heuristic. No 4B GPU is required. Default for demos without a key: `mock`.
-- Live accuracy is **not** claimed. Recorded HTTP fixtures cover adapter validation. A live E2E test exists and is skipped unless `TYPESAFE_API_KEY` is set locally (`src/test/jev.live.test.ts`).
+- Live accuracy is **not** claimed. Recorded HTTP fixtures cover adapter validation, parallel combining, and gates. A live E2E test exists and is skipped unless `TYPESAFE_API_KEY` is set locally (`src/test/jev.live.test.ts`).
 - Confirm is still required. The stub still does not email, write a calendar, or call an external API. Pasted content remains untrusted data.
 
-Live accuracy is not claimed in this repository. Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Measure routing on your own labelled set; do not substitute a vendor claim.
+Live accuracy is not claimed in this repository. Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Pin `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version; the alias can move. The response `model` field reports the versioned id. Measure routing on your own labelled set; do not substitute a vendor claim.
 
 ### Remaining north-star (not MS3)
 

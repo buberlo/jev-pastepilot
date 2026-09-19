@@ -6,7 +6,7 @@ The included JSON cases are **hand-labelled synthetic acceptance examples**, not
 
 1. The current `scripts/validate_scaffold.py` checks example structure, local documentation links, and that the TypeSafe SDK stays out of client source.
 2. Domain tests in `src/test/` enforce the deterministic acceptance criteria in [MVP](MVP.md), including the labelled cases in `examples/cases.json`. Coverage includes parsers, DecisionResult validation, routing, operational failure paths, and URL/share ingest. UI smoke lives in `src/test/App.test.tsx` and `src/test/shareIngest.test.tsx`.
-3. Provider tests compare held-out inputs with expected semantic results for the offline mock/local adapters. The Jev adapter is tested with recorded/mocked HTTP fixtures that match the official System One choice shape (`src/test/jevAdapter.test.ts`, `src/test/fixtures/`).
+3. Provider tests compare held-out inputs with expected semantic results for the offline mock/local adapters. The Jev adapter is tested with recorded/mocked HTTP fixtures that match the official System One shape, including parallel Choice/Noul/Score answers (`src/test/jevAdapter.test.ts`, `src/test/decisionLayer.test.ts`, `src/test/fixtures/`).
 4. End-to-end tests cover timeout, malformed output, quota, stale versions, missing key, ineligible candidates and the manual/offline path.
 5. **Live E2E (requires local key):** `src/test/jev.live.test.ts` is skipped unless `TYPESAFE_API_KEY` is set. It is not a vendor accuracy claim.
 
@@ -16,7 +16,7 @@ Measure correct selections, incorrect actions, abstentions and clarifications se
 
 Collect p50 and p95 wall-clock latency at the application boundary, request/token totals where exposed and failures by category. Report actual observed usage rather than assumed token cost. Compare the semantic provider with the deterministic baseline on the same inputs.
 
-Live Jev accuracy **must be measured** on a labelled set. Do not substitute a TypeSafe or Jev marketing claim for that measurement. Vendor `confidence` is logged only as an optional DecisionResult field and is never shown in the UI or used as a policy gate.
+Live Jev accuracy **must be measured** on a labelled set. Do not substitute a TypeSafe or Jev marketing claim for that measurement. Vendor `confidence` is a conservative routing gate in code (high → allow select, mid → clarify, low → abstain). It is not shown as a dashboard, and it is not treated as proof of correctness. Thresholds live in `DEFAULT_GATE_THRESHOLDS` and optional `JEV_*` env vars.
 
 ## Release gate
 

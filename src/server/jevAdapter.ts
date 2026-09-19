@@ -9,9 +9,16 @@ import {
   TypeSafeError,
   VERSION,
   choice,
+  noul,
+  score,
   type Fetch,
 } from "@typesafe-ai/sdk";
 import { isInjection } from "../domain/classify";
+import {
+  confidenceBand,
+  readGateThresholds,
+  type GateThresholds,
+} from "../domain/decisionLayer";
 import { ProviderNotConfiguredError, ProviderQuotaError } from "../domain/providerErrors";
 import type { DecisionProvider } from "../domain/providers";
 import { logOperational } from "../domain/log";
@@ -39,6 +46,7 @@ export type JevAdapterOptions = {
   client?: JevClientLike;
   timeoutMs?: number;
   env?: EnvMap;
+  thresholds?: GateThresholds;
 };
 
 export const TYPESAFE_SDK_VERSION = VERSION;
@@ -134,6 +142,7 @@ export function createJevAdapter(options: JevAdapterOptions = {}): DecisionProvi
       }
 
       const model = options.model ?? readJevModel(env);
+      const thresholds = options.thresholds ?? readGateThresholds(env);
       const payload = buildSystemOnePayload(request, model);
 
       try {
@@ -162,12 +171,18 @@ export function createJevAdapter(options: JevAdapterOptions = {}): DecisionProvi
                     payload.questions.action.instructions,
                     payload.questions.action.criteria,
                   ),
+                  suspicious: noul(
+                    payload.questions.suspicious.instructions,
+                    payload.questions.suspicious.criteria,
+                  ),
+                  unclear: noul(payload.questions.unclear.instructions),
+                  fit: score(payload.questions.fit.instructions, payload.questions.fit.criteria),
                 },
               },
               { signal, timeout: timeoutMs, retry: { maxRetries: 0 } },
             );
 
-        const decision = decisionFromSystemOne(raw, request);
+        const decision = decisionFromSystemOne(raw, request, thresholds);
         logOperational("jev_response", {
           requestId: request.requestId,
           stateVersion: request.stateVersion,
@@ -175,6 +190,7 @@ export function createJevAdapter(options: JevAdapterOptions = {}): DecisionProvi
           model: systemOneModel(raw) ?? model,
           sdk: TYPESAFE_SDK_VERSION,
           status: decision.status,
+          band: confidenceBand(decision.confidence, thresholds),
         });
         return decision;
       } catch (error) {

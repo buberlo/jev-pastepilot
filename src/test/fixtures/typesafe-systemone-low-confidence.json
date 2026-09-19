@@ -1,0 +1,41 @@
+{
+  "comment": "Choice select with low confidence. Code should abstain. Not a live response.",
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "action": {
+        "type": "choice",
+        "choice": "open_log_viewer",
+        "probabilities": {
+          "open_log_viewer": 0.38,
+          "abstain": 0.31,
+          "clarify": 0.31
+        },
+        "confidence": 0.22
+      },
+      "suspicious": {
+        "type": "noul",
+        "noul": 0.05
+      },
+      "unclear": {
+        "type": "noul",
+        "noul": 0.2
+      },
+      "fit": {
+        "type": "score",
+        "score": 1.7,
+        "confidence": 0.4,
+        "legend": {
+          "0": "No fit",
+          "1": "Weak fit",
+          "2": "Clear fit"
+        },
+        "probabilities": {
+          "0": 0.1,
+          "1": 0.1,
+          "2": 0.8
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { failureFromIssue, validateDecisionResult } from "./contract";
+import { applyConfidenceGate, confidenceBand } from "./decisionLayer";
 import { logOperational } from "./log";
 import { suggestionFromId } from "./mockProvider";
 import { parseFacts } from "./parsers";
@@ -123,7 +124,26 @@ export async function routePaste(input: string, options: RouteOptions = {}): Pro
       return failed(failure);
     }
 
-    const decision = checked.result;
+    let decision = checked.result;
+    if (decision.confidence !== undefined) {
+      const gated = applyConfidenceGate(decision.status, decision.confidence);
+      if (gated !== decision.status) {
+        logOperational("decision_gated", {
+          requestId,
+          stateVersion,
+          provider: decision.provider,
+          from: decision.status,
+          to: gated,
+          band: confidenceBand(decision.confidence),
+        });
+        decision = {
+          ...decision,
+          status: gated,
+          actionId: gated === "select" ? decision.actionId : null,
+        };
+      }
+    }
+
     const primary =
       decision.status === "select" && decision.actionId && isToolId(decision.actionId)
         ? decision.actionId

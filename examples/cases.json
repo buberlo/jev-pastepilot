@@ -149,6 +149,37 @@
         "failure": "stale"
       },
       "notes": "Provider stateVersion does not match the request."
+    },
+    {
+      "id": "low-confidence-gate",
+      "input": "Service failed: connection refused on the database socket.",
+      "state": {},
+      "scenario": "low_confidence",
+      "available_actions": [
+        "open_log_viewer",
+        "capture_task"
+      ],
+      "expected": {
+        "status": "abstain",
+        "action_id": null
+      },
+      "notes": "Choice confidence below JEV_CONFIDENCE_LOW. Code abstains; not a live measurement."
+    },
+    {
+      "id": "mid-confidence-gate",
+      "input": "Service failed: connection refused on the database socket.",
+      "state": {},
+      "scenario": "mid_confidence",
+      "available_actions": [
+        "open_log_viewer",
+        "capture_task",
+        "capture_idea"
+      ],
+      "expected": {
+        "status": "clarify",
+        "action_id": null
+      },
+      "notes": "Choice confidence between low and high. Code prefers clarify."
     }
   ]
 }

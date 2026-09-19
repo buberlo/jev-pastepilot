@@ -13,6 +13,8 @@ export const DECISION_SCENARIOS = [
   "unknown_action",
   "select_without_id",
   "quota",
+  "low_confidence",
+  "mid_confidence",
 ] as const;
 
 export type DecisionScenario = (typeof DECISION_SCENARIOS)[number];
@@ -107,6 +109,16 @@ export function wrapProvider(
           ...valid,
           status: "select",
           actionId: "send_email",
+        };
+      }
+      if (scenario === "low_confidence" || scenario === "mid_confidence") {
+        const offered = request.candidates[0]?.id ?? "capture_task";
+        const current = valid as { actionId?: string | null };
+        return {
+          ...valid,
+          status: "select",
+          actionId: current.actionId ?? offered,
+          confidence: scenario === "low_confidence" ? 0.2 : 0.55,
         };
       }
       return {
