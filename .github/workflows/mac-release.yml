@@ -1,0 +1,141 @@
+# Build the Mac Settings / Services .app and publish it on GitHub Releases.
+# Linux / this cloud VM cannot produce the binary — macos-latest must.
+#
+# Release scheme (also in README.md and macos/README.md):
+# - Push to main → replace the rolling release tagged `mac-latest`
+#   (asset: PastePilot-mac.zip). That is the usual download.
+# - Push tag `v*` → versioned release with the same zip.
+# - pull_request, or workflow_dispatch with publish=false → dry-run
+#   (build + zip + Actions artifact only; no Release).
+#
+# Ad-hoc codesign only. Not Developer ID, not notarized. No TYPESAFE_API_KEY
+# is read or written. The key stays in the user's Keychain.
+
+name: Mac release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    paths:
+      - 'macos/**'
+      - '.github/workflows/mac-release.yml'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: >-
+          Publish or replace a GitHub Release after a successful build.
+          Leave false for a dry-run (build + zip only).
+        type: boolean
+        default: false
+
+concurrency:
+  group: mac-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build PastePilot.app
+        run: ./macos/PastePilotService/build.sh
+
+      - name: Ad-hoc sign (not notarized)
+        run: |
+          codesign --force --deep --sign - \
+            macos/PastePilotService/dist/PastePilot.app
+
+      - name: Zip the .app
+        run: |
+          rm -f PastePilot-mac.zip
+          ditto -c -k --keepParent \
+            macos/PastePilotService/dist/PastePilot.app \
+            PastePilot-mac.zip
+          ls -lh PastePilot-mac.zip
+          unzip -l PastePilot-mac.zip
+
+      - name: Refuse secrets in the zip
+        run: |
+          if unzip -l PastePilot-mac.zip | grep -Ei '\.env|TYPESAFE_API_KEY|\.pem$|\.p12$'; then
+            echo "Refusing to publish: zip listing looks like it contains secrets." >&2
+            exit 1
+          fi
+          tmp="$(mktemp -d)"
+          unzip -q PastePilot-mac.zip -d "$tmp"
+          # Skip the Mach-O; Keychain account name "TYPESAFE_API_KEY" may appear in the binary.
+          if grep -R --binary-files=without-match -E 'TYPESAFE_API_KEY=' "$tmp"; then
+            echo "Refusing to publish: zip contents matched a secret assignment." >&2
+            exit 1
+          fi
+          test -x "$tmp/PastePilot.app/Contents/MacOS/PastePilot"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PastePilot-mac
+          path: PastePilot-mac.zip
+          if-no-files-found: error
+
+      - name: Decide whether to publish
+        id: meta
+        run: |
+          tag=""
+          title=""
+          publish="false"
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            tag="mac-latest"
+            title="Mac latest"
+            publish="true"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            tag="${{ github.ref_name }}"
+            title="${{ github.ref_name }}"
+            publish="true"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish }}" == "true" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            tag="mac-latest"
+            title="Mac latest"
+            publish="true"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "Publish=$publish tag=$tag (dry-run when publish=false)"
+
+      - name: Replace rolling mac-latest tag
+        if: steps.meta.outputs.publish == 'true' && steps.meta.outputs.tag == 'mac-latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Recreate the rolling tag at this commit. Not a branch force-push.
+          if gh release view mac-latest >/dev/null 2>&1; then
+            gh release delete mac-latest --yes --cleanup-tag
+          fi
+
+      - name: Publish GitHub Release
+        if: steps.meta.outputs.publish == 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.title }}
+          target_commitish: ${{ github.sha }}
+          files: PastePilot-mac.zip
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          make_latest: true
+          body: |
+            Unsigned / ad-hoc Mac build of `PastePilot.app` (Settings + Services).
+
+            - Commit: `${{ github.sha }}`
+            - Runner: `macos-latest` (Apple Silicon)
+            - **Not signed with Developer ID and not notarized.** Gatekeeper will block a double-click. Right-click the app → **Open**.
+            - Does **not** contain `TYPESAFE_API_KEY`. Save the key in Keychain via **PastePilot → Settings…**. Never commit it.
+
+            Install: unzip `PastePilot-mac.zip`, move `PastePilot.app` to `/Applications`, right-click → Open. Then start the web app (`./macos/run-dev-with-keychain.sh` or `npm run dev`).
+
+            See `macos/README.md`.
