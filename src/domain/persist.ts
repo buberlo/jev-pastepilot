@@ -1,3 +1,4 @@
+import { isMacActionTool, macActionMessage, type MacActionToolId } from "./macActions";
 import { formatInboxMarkdown, type LocalSaveEntry } from "./saveLocal";
 
 export type PersistResult = {
@@ -144,4 +145,66 @@ export async function persistDownload(args: {
   }
 
   return { ok: false, message: "Could not save locally." };
+}
+
+export type MacPersistResult = {
+  ok: boolean;
+  used: "mac" | "fallback";
+  message: string;
+  reason?: "no_shortcut" | "mac_failed" | "not_mac";
+};
+
+/**
+ * Ask the local server to run a Mac Confirm action. On web/Linux the server
+ * returns used=fallback. Never sends the API key. Never logs the paste.
+ */
+export async function persistMacAction(args: {
+  toolId: string;
+  text: string;
+  url?: string;
+  path?: string;
+  query?: string;
+  content?: string;
+}): Promise<MacPersistResult> {
+  if (!isMacActionTool(args.toolId)) {
+    return { ok: false, used: "fallback", message: "That tool is not a Mac action.", reason: "mac_failed" };
+  }
+  try {
+    const response = await fetch("/api/mac", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        toolId: args.toolId,
+        text: args.text,
+        url: args.url,
+        path: args.path,
+        query: args.query,
+        content: args.content,
+      }),
+    });
+    const body = (await response.json()) as { used?: string; message?: string; error?: string };
+    if (response.ok && (body.used === "mac" || body.used === "fallback")) {
+      return {
+        ok: true,
+        used: body.used,
+        message: body.message ?? macActionMessage(args.toolId, body.used),
+      };
+    }
+    if (body.error === "no_shortcut") {
+      return {
+        ok: false,
+        used: "fallback",
+        message: "No Shortcut name in Settings. Confirm was ignored.",
+        reason: "no_shortcut",
+      };
+    }
+  } catch {
+    // Fall through. Do not log the pasted text.
+  }
+  return {
+    ok: true,
+    used: "fallback",
+    message: macActionMessage(args.toolId as MacActionToolId, "fallback"),
+    reason: "not_mac",
+  };
 }

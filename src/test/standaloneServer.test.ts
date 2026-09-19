@@ -102,6 +102,17 @@ describe("standalone listener", () => {
       expect(body.count).toBe(1);
       expect(body.path).toContain(dataDir);
 
+      const mac = await fetch(`${running.url}/api/mac`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toolId: "speak_text", text: "hello" }),
+      });
+      expect(mac.ok).toBe(true);
+      const macBody = (await mac.json()) as { used?: string; message?: string };
+      expect(macBody.used).toBe("fallback");
+      expect(macBody.message).toMatch(/Mac-only|say/i);
+      expect(JSON.stringify(macBody)).not.toMatch(/TYPESAFE|sk-/);
+
       const exported = await fetch(`${running.url}/api/export`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

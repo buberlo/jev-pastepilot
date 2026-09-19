@@ -7,6 +7,8 @@ struct SettingsView: View {
     @State private var model = AppSettings.model
     @State private var provider = AppSettings.provider
     @State private var serverURL = AppSettings.serverURL
+    @State private var preferredBrowser = AppSettings.preferredBrowser
+    @State private var shortcutName = AppSettings.shortcutName
     @State private var status = "The main window is PastePilot. Confirm is required. The key is never put on a URL."
 
     var body: some View {
@@ -57,6 +59,29 @@ struct SettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    LabeledContent("Preferred browser") {
+                        Picker("Preferred browser", selection: $preferredBrowser) {
+                            Text("Default").tag("default")
+                            Text("Safari").tag("safari")
+                            Text("Chrome").tag("chrome")
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(minWidth: 240)
+                    }
+                    Text("Used by Open in Safari / Open in Chrome after Confirm. Never put on a URL.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    LabeledContent("Shortcut") {
+                        TextField("Optional Shortcuts name", text: $shortcutName)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 240)
+                    }
+                    Text("Run Shortcut uses this name after Confirm (`shortcuts://run-shortcut?name=`). The API key is never added.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(6)
             }
@@ -74,7 +99,7 @@ struct SettingsView: View {
                 .textSelection(.enabled)
         }
         .padding(20)
-        .frame(minWidth: 440, minHeight: 460)
+        .frame(minWidth: 440, minHeight: 580)
         .onAppear { keyStored = KeychainStore.hasAPIKey() }
     }
 
@@ -82,6 +107,8 @@ struct SettingsView: View {
         AppSettings.serverURL = serverURL
         AppSettings.provider = provider
         AppSettings.model = model
+        AppSettings.preferredBrowser = preferredBrowser
+        AppSettings.shortcutName = shortcutName
         do {
             if !apiKey.isEmpty {
                 try KeychainStore.saveAPIKey(apiKey)

@@ -9,17 +9,87 @@ import {
   isLocalSaveTool,
   persistDownload,
   persistLocalSave,
+  persistMacAction,
   readDemoOptions,
   readSharedText,
   routePaste,
   type ActionPreview,
   type ActionSuggestion,
   type ExecutionResult,
+  type MacActionFallback,
   type RouteOutcome,
 } from "./domain";
 
 const PASTE_HINT = "⌘V or Ctrl+V, or use Paste. Nothing runs until you confirm.";
 const SHARE_HINT = "Opened from Share. Nothing runs until you confirm.";
+
+async function applyFallback(fallback: MacActionFallback | undefined): Promise<ExecutionResult | null> {
+  if (!fallback || fallback.type === "stub") {
+    return null;
+  }
+  if (fallback.type === "open_url" && fallback.url) {
+    const opened = openConfirmedUrl(fallback.url);
+    if (!opened) {
+      return {
+        ok: false,
+        reason: "open_blocked",
+        message: "The browser blocked the new tab. Allow pop-ups, then Confirm again.",
+      };
+    }
+    return { ok: true, message: "Opened the link.", effect: { type: "open_url", url: fallback.url } };
+  }
+  if (fallback.type === "copy" && fallback.text !== undefined) {
+    const copied = await copyConfirmedText(fallback.text);
+    if (!copied) {
+      return { ok: false, reason: "copy_failed", message: "Could not copy. Confirm was ignored." };
+    }
+    return { ok: true, message: "Copied.", effect: { type: "copy", text: fallback.text } };
+  }
+  if (fallback.type === "download" && fallback.filename && fallback.content !== undefined && fallback.mime) {
+    const persisted = await persistDownload({
+      filename: fallback.filename,
+      content: fallback.content,
+      mime: fallback.mime,
+    });
+    if (!persisted.ok) {
+      return { ok: false, reason: "download_failed", message: persisted.message };
+    }
+    return {
+      ok: true,
+      message: persisted.message,
+      effect: {
+        type: "download",
+        filename: fallback.filename,
+        content: fallback.content,
+        mime: fallback.mime,
+        path: persisted.path,
+        downloaded: persisted.downloaded,
+      },
+    };
+  }
+  if (fallback.type === "save_local" && fallback.entry && isLocalSaveTool(fallback.entry.toolId)) {
+    const persisted = await persistLocalSave({
+      toolId: fallback.entry.toolId,
+      text: fallback.entry.text,
+      savedAt: fallback.entry.savedAt,
+    });
+    if (!persisted.ok) {
+      return { ok: false, reason: "save_failed", message: persisted.message };
+    }
+    return {
+      ok: true,
+      message: persisted.message,
+      effect: {
+        type: "save_local",
+        entry: fallback.entry,
+        path: persisted.path,
+        count: persisted.count,
+        downloaded: persisted.downloaded,
+      },
+    };
+  }
+  return null;
+}
 
 function sharedTextOnLoad(): string | null {
   return readSharedText(window.location.search);
@@ -114,6 +184,56 @@ export default function App() {
     });
     if (!gated.ok || !gated.effect) {
       setResult(gated);
+      return;
+    }
+
+    if (gated.effect.type === "mac_action" && gated.effect.toolId) {
+      const mac = await persistMacAction({
+        toolId: gated.effect.toolId,
+        text: gated.effect.text ?? text,
+        url: gated.effect.url,
+        path: gated.effect.path,
+        query: gated.effect.query,
+        content: gated.effect.fallback?.content,
+      });
+      if (!mac.ok) {
+        setResult({
+          ok: false,
+          reason: mac.reason ?? "mac_failed",
+          message: mac.message,
+        });
+        return;
+      }
+      if (mac.used === "mac") {
+        setResult({
+          ...gated,
+          message: mac.message,
+        });
+        setPreview(null);
+        return;
+      }
+      const applied = await applyFallback(gated.effect.fallback);
+      if (applied) {
+        setResult({
+          ...applied,
+          message: mac.message,
+        });
+        if (applied.ok) {
+          setPreview(null);
+        }
+        return;
+      }
+      setResult({
+        ...gated,
+        message: mac.message,
+      });
+      setPreview(null);
+      return;
+    }
+
+    if (gated.effect.type === "screen" && gated.effect.summary) {
+      setResult(gated);
+      setPreview(null);
       return;
     }
 
@@ -344,6 +464,12 @@ function resultAsideTitle(result: ExecutionResult): string {
   if (result.effect?.type === "download") {
     return "Saved locally";
   }
+  if (result.effect?.type === "mac_action") {
+    return "Mac action";
+  }
+  if (result.effect?.type === "screen") {
+    return "Screened locally";
+  }
   return "Local preview";
 }
 
@@ -362,6 +488,12 @@ function resultAsideBody(result: ExecutionResult): string {
   }
   if (result.effect?.type === "download") {
     return "Saved a local file. No email, calendar, or network.";
+  }
+  if (result.effect?.type === "mac_action") {
+    return "Ran only after Confirm. No email send, no silent shell, no API key on the URL.";
+  }
+  if (result.effect?.type === "screen") {
+    return result.effect.summary ?? "Local screen only. Nothing was sent.";
   }
   return "The action stayed on this page. No email, calendar, or external API was used.";
 }
