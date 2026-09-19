@@ -48,6 +48,7 @@ At runtime validate the complete result, the selected ID against the offered IDs
 - Decision provider is replaceable: `mock` and `local` need no network; `jev` is a thin server-side TypeSafe adapter.
 - Execution gate rechecks current-state rules immediately before any action. Confirm is required. After the gate, two local adapters may run: **Open link** (first parser `http`/`https` URL only) and **Save idea / task / note** (append to a local inbox). Other catalogue tools stay stubs. No email, calendar, or unrelated network write.
 - View/persistence layers display provenance and store only the permitted data. The inbox default is `.local/pastepilot/inbox.md` (or `PASTEPILOT_DATA_DIR`). The browser may download a markdown snippet if the local save endpoint is unavailable.
+- Mac Settings (SwiftUI) store `TYPESAFE_API_KEY` in the Keychain and non-secrets in UserDefaults. Share / Services read the server URL and provider only. The web app still reads the key from the server process environment, never from the browser or the ingest URL.
 
 ## Failure behaviour
 

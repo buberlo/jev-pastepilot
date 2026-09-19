@@ -121,7 +121,16 @@ export function handleShareRequest(args: {
   return null;
 }
 
-export function shareAppUrl(text: string, base = "http://localhost:5173"): string {
+export function shareAppUrl(
+  text: string,
+  base = "http://localhost:5173",
+  options: { provider?: string } = {},
+): string {
   const origin = base.replace(/\/$/, "");
-  return `${origin}${shareRedirectPath(text)}`;
+  const extra = new URLSearchParams();
+  const provider = options.provider?.trim().toLowerCase();
+  if (provider === "jev" || provider === "local") {
+    extra.set("provider", provider);
+  }
+  return `${origin}${shareRedirectPath(text, extra.toString())}`;
 }

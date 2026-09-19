@@ -4,10 +4,23 @@
 
 set -euo pipefail
 
-BASE="${PASTEPILOT_URL:-http://localhost:5173}"
+BASE="${PASTEPILOT_URL:-}"
+PROVIDER="${PASTEPILOT_PROVIDER:-}"
 PRINT_URL=0
 FROM_CLIPBOARD=0
 TEXT=""
+
+# Non-secret Mac Settings (UserDefaults). Never reads the Keychain API key.
+if command -v defaults >/dev/null 2>&1; then
+  if [[ -z "$BASE" ]]; then
+    BASE="$(defaults read local.pastepilot.settings serverURL 2>/dev/null || true)"
+  fi
+  if [[ -z "$PROVIDER" ]]; then
+    PROVIDER="$(defaults read local.pastepilot.settings provider 2>/dev/null || true)"
+  fi
+fi
+BASE="${BASE:-http://localhost:5173}"
+PROVIDER="${PROVIDER:-mock}"
 
 usage() {
   cat <<'EOF'
@@ -81,7 +94,15 @@ if [[ -z "${TEXT}" ]]; then
 fi
 
 ENCODED="$(printf '%s' "$TEXT" | python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read(), safe=""))')"
-TARGET="${BASE%/}/?text=${ENCODED}"
+PROVIDER="$(printf '%s' "$PROVIDER" | tr '[:upper:]' '[:lower:]')"
+case "$PROVIDER" in
+  jev|local)
+    TARGET="${BASE%/}/?provider=${PROVIDER}&text=${ENCODED}"
+    ;;
+  *)
+    TARGET="${BASE%/}/?text=${ENCODED}"
+    ;;
+esac
 
 if [[ "$PRINT_URL" -eq 1 ]]; then
   printf '%s\n' "$TARGET"

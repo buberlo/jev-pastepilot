@@ -82,7 +82,7 @@ Live accuracy is not claimed in this repository. Documented model alias: `jev-la
 
 ### Remaining north-star (not MS3)
 
-- A real signed / notarized Mac `.app` (this repo ships an importable Quick Action + Swift source; a Linux VM cannot notarize).
+- A real signed / notarized Mac `.app` (this repo ships an importable Quick Action plus SwiftUI Settings source that stores the TypeSafe key in Keychain; a Linux VM cannot notarize).
 - A Windows tray / Share target that opens the same `/?text=` URL.
 - More tool integrations, each with its own permission and confirmation flow.
 - Live TypeSafe measurement on a labelled set (not part of the Confirm-adapters slice).

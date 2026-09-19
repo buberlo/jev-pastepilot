@@ -12,9 +12,18 @@ let package = Package(
             name: "PastePilotService",
             path: ".",
             exclude: ["build.sh", "Info.plist"],
-            sources: ["main.swift"],
+            sources: [
+                "AppSettings.swift",
+                "KeychainStore.swift",
+                "PastePilotApp.swift",
+                "ServiceProvider.swift",
+                "SettingsView.swift",
+                "ShareURLBuilder.swift",
+            ],
             linkerSettings: [
                 .linkedFramework("AppKit"),
+                .linkedFramework("SwiftUI"),
+                .linkedFramework("Security"),
             ]
         ),
     ]

@@ -93,6 +93,8 @@ Install steps live in [macos/README.md](macos/README.md).
 
 Short version: keep `npm run dev` running, then **double-click** `macos/install.command` (or copy the bundled Quick Action into `~/Library/Services`). Select text → **Services → Send to PastePilot**. The browser opens `/?text=` with the field filled and at most three actions. Confirm is still required.
 
+On a Mac, build the SwiftUI **Settings** window (`macos/PastePilotService/build.sh`) to store `TYPESAFE_API_KEY` in the **Keychain** (never in git). Start the server with `macos/run-dev-with-keychain.sh` so the key stays in the process environment. Details: [macos/README.md](macos/README.md).
+
 `--clipboard` on the helper script is an explicit flag. There is no passive clipboard surveillance.
 
 Windows share / tray is not built yet. A later slice can open the same `/?text=` URL.
@@ -106,6 +108,7 @@ Windows share / tray is not built yet. A later slice can open the same `/?text=`
 | **Share** — URL ingest + importable Mac Quick Action / Shortcuts | Done |
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
 | **Confirm tools** — open allowlisted http(s); append idea/task/note locally | Done |
+| **Mac Settings** — SwiftUI Settings + Keychain (source; not notarized) | Done |
 | **Next** — notarized Mac `.app`, Windows share / tray, more tools | Not started |
 
 A slice is done when you can reproduce it with the commands above. See [docs/MVP.md](docs/MVP.md).
@@ -116,7 +119,7 @@ A slice is done when you can reproduce it with the commands above. See [docs/MVP
 - Pasted text is untrusted data. It cannot grant new permissions.
 - Routing does not send, schedule, or write anything. Confirm may open one allowlisted http(s) link or append to a local file — never email or calendar.
 - Exact values (dates, URLs, emails) are parsed in code, separate from “what kind of text is this?”
-- Provider keys stay server-side. Never commit them. Never log `TYPESAFE_API_KEY`.
+- Provider keys stay server-side (or in the Mac Keychain for Settings). Never commit them. Never log `TYPESAFE_API_KEY`. Never put the key on `/?text=`.
 
 ## More detail
 

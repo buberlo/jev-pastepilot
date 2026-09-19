@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PastePilot Settings (layout preview)</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #c9c4b8;
+        --paper: #fffdf8;
+        --ink: #1b1a17;
+        --muted: #5c574e;
+        --line: #d9d2c5;
+        --accent: #1f4d3a;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+        background: #6e6a62;
+        color: var(--ink);
+      }
+      .window {
+        width: min(480px, calc(100% - 2rem));
+        background: var(--paper);
+        border-radius: 12px;
+        box-shadow: 0 24px 60px rgb(0 0 0 / 0.28);
+        overflow: hidden;
+      }
+      .titlebar {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.65rem 0.85rem;
+        background: #ece8df;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; background: #c4c0b6; }
+      .body { padding: 1.25rem 1.35rem 1.4rem; }
+      h1 { margin: 0 0 0.4rem; font-size: 1.35rem; }
+      .lede { margin: 0 0 1rem; color: var(--muted); font-size: 0.95rem; }
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin: 0 0 0.85rem;
+        padding: 0.75rem 0.85rem 0.9rem;
+      }
+      legend { padding: 0 0.35rem; font-weight: 600; }
+      label { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.5rem; align-items: center; margin: 0.45rem 0; }
+      input, select {
+        font: inherit;
+        padding: 0.4rem 0.55rem;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      .hint { color: var(--muted); font-size: 0.85rem; margin: 0.2rem 0 0.3rem 6.5rem; }
+      .seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+      .seg span { flex: 1; text-align: center; padding: 0.35rem 0.4rem; font-size: 0.9rem; }
+      .seg .on { background: var(--accent); color: #f4f1ea; }
+      .actions { display: flex; gap: 0.5rem; margin: 0.4rem 0 0.7rem; }
+      button {
+        font: inherit;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        min-height: 2.3rem;
+        padding: 0.35rem 0.95rem;
+        cursor: default;
+      }
+      .save { background: var(--accent); color: #f4f1ea; }
+      .quiet { background: transparent; color: var(--muted); border-color: var(--line); }
+      .status { color: var(--muted); font-size: 0.88rem; margin: 0; }
+      .banner {
+        margin: 0 0 1rem;
+        padding: 0.45rem 0.6rem;
+        background: #efe6c8;
+        color: #6b3b1f;
+        border-radius: 8px;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <article class="window" aria-label="PastePilot Settings">
+      <div class="titlebar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        PastePilot Settings
+      </div>
+      <div class="body">
+        <p class="banner">Layout preview of macos/PastePilotService/SettingsView.swift — this Linux VM cannot run the real Mac window. The API key is never stored here.</p>
+        <h1>PastePilot Settings</h1>
+        <p class="lede">Store the TypeSafe key on this Mac. Share still only opens /?text= — Confirm is required.</p>
+        <fieldset>
+          <legend>TypeSafe</legend>
+          <label>API key <input type="password" value="••••••••" readonly autocomplete="off" /></label>
+          <p class="hint">A key is in the macOS Keychain.</p>
+          <label>Model <input value="jev-latest" readonly /></label>
+          <label>Provider
+            <span class="seg" aria-label="Provider">
+              <span>mock</span><span>local</span><span class="on">jev</span>
+            </span>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>PastePilot</legend>
+          <label>Server URL <input value="http://localhost:5173" readonly /></label>
+        </fieldset>
+        <div class="actions">
+          <button type="button" class="save">Save</button>
+          <button type="button" class="quiet">Remove key</button>
+        </div>
+        <p class="status">Saved. The key stays in Keychain (service local.pastepilot.typesafe). It is not in git, the share URL, or logs.</p>
+      </div>
+    </article>
+  </body>
+</html>
