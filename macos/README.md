@@ -12,9 +12,35 @@ If Settings chose provider `jev` or `local`, the helper adds `?provider=…`. Th
 
 PastePilot must already be running. Nothing runs until Confirm. There is no clipboard watcher.
 
-This folder ships **source, an importable Quick Action, and a SwiftUI Settings window**. A Linux machine cannot produce a signed or notarized `.app`. Do not expect one here.
+This folder ships **source, an importable Quick Action, and a SwiftUI Settings window**. A Linux machine cannot produce a `.app`. GitHub Actions on `macos-latest` publishes an **ad-hoc / unsigned** zip on [Releases](https://github.com/buberlo/jev-pastepilot/releases). It is not notarized.
 
 Windows share / tray is later work. It can open the same `/?text=` URL when it exists.
+
+## Download (GitHub Releases)
+
+Linux CI cannot build this `.app`. The Mac workflow does.
+
+| Trigger | Release | Asset |
+| --- | --- | --- |
+| Push to `main` | rolling tag [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) (replaced each time) | `PastePilot-mac.zip` |
+| Tag `v*` (for example `v0.1.0`) | versioned release of that tag | `PastePilot-mac.zip` |
+| `workflow_dispatch` | dry-run by default (build + zip only); set **publish** to replace `mac-latest` from `main` | same zip |
+
+Workflow: [`.github/workflows/mac-release.yml`](../.github/workflows/mac-release.yml).
+
+**This build is ad-hoc signed, not Developer ID signed, and not notarized.** macOS Gatekeeper will warn.
+
+1. Download `PastePilot-mac.zip` from [Releases](https://github.com/buberlo/jev-pastepilot/releases).
+2. Unzip. Drag `PastePilot.app` to `/Applications` (or `~/Applications`).
+3. **Right-click** the app → **Open** (not a regular double-click) the first time. Confirm the Gatekeeper dialog.
+4. The Settings window **is** the app. Optionally save the TypeSafe API key — it goes to **Keychain only**, never into the downloaded zip or this repo.
+5. Start the web app (`./macos/run-dev-with-keychain.sh` or `npm run dev`), then **Services → Send to PastePilot**.
+
+Do not expect a signed or notarized binary. There are no signing secrets in this repository. Never put `TYPESAFE_API_KEY` in a release asset.
+
+### Dry-run the workflow
+
+**Actions → Mac release → Run workflow**. Leave **publish** unchecked. That builds and uploads a workflow artifact without creating or changing a Release. Pull requests that touch `macos/` or the workflow file also dry-run (build + zip only).
 
 ## Settings (TypeSafe key)
 
@@ -113,7 +139,9 @@ The 303 `Location` is the same `/?text=` ingest.
 
 ## 5. Build the Settings app (Mac + Xcode tools)
 
-Not notarized. Build it yourself:
+Prefer the [Release zip](#download-github-releases) unless you are changing the Swift sources.
+
+Local build (not notarized):
 
 ```sh
 ./macos/PastePilotService/build.sh

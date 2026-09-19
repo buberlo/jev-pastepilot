@@ -56,8 +56,32 @@ def validate() -> int:
             target = target.split('#', 1)[0]
             if target and not (page.parent / target).exists():
                 errors.append(f'{page.relative_to(ROOT)}: broken local link {target}')
-    if (ROOT / '.github/workflows').exists():
-        errors.append('GitHub Actions workflows are not part of this scaffold.')
+    workflows = ROOT / '.github/workflows'
+    if workflows.exists():
+        allowed = {'mac-release.yml'}
+        found = {p.name for p in workflows.iterdir() if p.is_file() and not p.name.startswith('.')}
+        unexpected = found - allowed
+        if unexpected:
+            errors.append(
+                'Only the Mac release workflow is allowed under .github/workflows/; '
+                f'unexpected: {", ".join(sorted(unexpected))}'
+            )
+        missing = allowed - found
+        if missing:
+            errors.append(f'Missing Mac release workflow: {", ".join(sorted(missing))}')
+        else:
+            text = (workflows / 'mac-release.yml').read_text(encoding='utf-8')
+            if 'macos-latest' not in text:
+                errors.append('mac-release.yml must run on macos-latest')
+            if 'macos/PastePilotService/build.sh' not in text:
+                errors.append('mac-release.yml must call macos/PastePilotService/build.sh')
+            if 'PastePilot-mac.zip' not in text:
+                errors.append('mac-release.yml must publish PastePilot-mac.zip')
+            if 'softprops/action-gh-release' not in text:
+                errors.append('mac-release.yml must upload via softprops/action-gh-release')
+            if 'secrets.TYPESAFE_API_KEY' in text or 'secrets.TYPESAFE' in text:
+                errors.append('mac-release.yml must not inject TYPESAFE_API_KEY')
+
     if errors:
         print('\n'.join(errors), file=sys.stderr)
         return 1

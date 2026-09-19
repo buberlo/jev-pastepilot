@@ -89,11 +89,15 @@ Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test` — see `src/t
 
 ## Share from a Mac
 
+**Download the helper:** every push to `main` refreshes the rolling GitHub Release [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) (`PastePilot-mac.zip`). Optional `v*` tags publish a versioned copy of the same zip. [All releases](https://github.com/buberlo/jev-pastepilot/releases).
+
+The CI build is **ad-hoc / not notarized** (no Developer ID secrets in this repo). After unzipping, **right-click → Open** the first time so Gatekeeper lets it run. The zip never contains `TYPESAFE_API_KEY`; save the key in Keychain via **PastePilot → Settings…**.
+
 Install steps live in [macos/README.md](macos/README.md).
 
 Short version: keep `npm run dev` running, then **double-click** `macos/install.command` (or copy the bundled Quick Action into `~/Library/Services`). Select text → **Services → Send to PastePilot**. The browser opens `/?text=` with the field filled and at most three actions. Confirm is still required.
 
-On a Mac, build the SwiftUI **Settings** window (`macos/PastePilotService/build.sh`) to store `TYPESAFE_API_KEY` in the **Keychain** (never in git). Start the server with `macos/run-dev-with-keychain.sh` so the key stays in the process environment. Details: [macos/README.md](macos/README.md).
+On a Mac, use the Release `.app` (or build `macos/PastePilotService/build.sh`) to store `TYPESAFE_API_KEY` in the **Keychain** (never in git). Start the server with `macos/run-dev-with-keychain.sh` so the key stays in the process environment. Details: [macos/README.md](macos/README.md).
 
 `--clipboard` on the helper script is an explicit flag. There is no passive clipboard surveillance.
 
@@ -108,7 +112,7 @@ Windows share / tray is not built yet. A later slice can open the same `/?text=`
 | **Share** — URL ingest + importable Mac Quick Action / Shortcuts | Done |
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
 | **Confirm tools** — open allowlisted http(s); append idea/task/note locally | Done |
-| **Mac Settings** — SwiftUI Settings + Keychain (source; not notarized) | Done |
+| **Mac Settings** — SwiftUI Settings + Keychain; unsigned CI `.app` on [Releases](https://github.com/buberlo/jev-pastepilot/releases) | Done (ad-hoc, not notarized) |
 | **Next** — notarized Mac `.app`, Windows share / tray, more tools | Not started |
 
 A slice is done when you can reproduce it with the commands above. See [docs/MVP.md](docs/MVP.md).
@@ -137,7 +141,8 @@ A slice is done when you can reproduce it with the commands above. See [docs/MVP
 | Command | What it covers |
 | --- | --- |
 | `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, local save, UI smoke |
-| `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side |
+| `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side, Mac workflow only |
+| GitHub Actions `Mac release` | Builds `macos/PastePilotService` on `macos-latest` and publishes `PastePilot-mac.zip` |
 
 These checks do not measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.
 
