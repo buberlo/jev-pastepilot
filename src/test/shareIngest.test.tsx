@@ -49,8 +49,8 @@ describe("URL / share ingest", () => {
     expect(screen.queryByText(/Prepared/)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(screen.getByRole("status")).toHaveTextContent(/Prepared/);
-    expect(screen.getByLabelText("Local preview")).toHaveTextContent(/No email, calendar, or external API/);
+    expect(screen.getByRole("status")).toHaveTextContent(/Saved a local download/);
+    expect(screen.getByLabelText("Local preview")).toHaveTextContent(/Saved a local file/);
   });
 
   it("fail-opens share ingest when provider=jev has no key", async () => {

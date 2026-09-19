@@ -3,9 +3,11 @@ import "./App.css";
 import {
   buildPreview,
   confirmExecution,
+  copyConfirmedText,
   newStateVersion,
   openConfirmedUrl,
   isLocalSaveTool,
+  persistDownload,
   persistLocalSave,
   readDemoOptions,
   readSharedText,
@@ -126,6 +128,53 @@ export default function App() {
         return;
       }
       setResult(gated);
+      setPreview(null);
+      return;
+    }
+
+    if (gated.effect.type === "copy" && gated.effect.text !== undefined) {
+      const copied = await copyConfirmedText(gated.effect.text);
+      if (!copied) {
+        setResult({
+          ok: false,
+          reason: "copy_failed",
+          message: "Could not copy. Confirm was ignored.",
+        });
+        return;
+      }
+      setResult(gated);
+      setPreview(null);
+      return;
+    }
+
+    if (
+      gated.effect.type === "download" &&
+      gated.effect.filename &&
+      gated.effect.content !== undefined &&
+      gated.effect.mime
+    ) {
+      const persisted = await persistDownload({
+        filename: gated.effect.filename,
+        content: gated.effect.content,
+        mime: gated.effect.mime,
+      });
+      if (!persisted.ok) {
+        setResult({
+          ok: false,
+          reason: "download_failed",
+          message: persisted.message,
+        });
+        return;
+      }
+      setResult({
+        ...gated,
+        message: persisted.message,
+        effect: {
+          ...gated.effect,
+          path: persisted.path,
+          downloaded: persisted.downloaded,
+        },
+      });
       setPreview(null);
       return;
     }
@@ -284,9 +333,15 @@ export default function App() {
 
 function resultAsideTitle(result: ExecutionResult): string {
   if (result.effect?.type === "open_url") {
-    return "Opened link";
+    return result.effect.url?.startsWith("mailto:") ? "Opened mail draft" : "Opened link";
   }
   if (result.effect?.type === "save_local") {
+    return "Saved locally";
+  }
+  if (result.effect?.type === "copy") {
+    return "Copied";
+  }
+  if (result.effect?.type === "download") {
     return "Saved locally";
   }
   return "Local preview";
@@ -294,10 +349,19 @@ function resultAsideTitle(result: ExecutionResult): string {
 
 function resultAsideBody(result: ExecutionResult): string {
   if (result.effect?.type === "open_url") {
+    if (result.effect.url?.startsWith("mailto:")) {
+      return "Opened a mailto: draft. No email was sent.";
+    }
     return "Only the confirmed http(s) link was opened. No email, calendar, or other network write.";
   }
   if (result.effect?.type === "save_local") {
     return "Appended to a local file. No email, calendar, or network.";
+  }
+  if (result.effect?.type === "copy") {
+    return "Copied locally. No email, calendar, or network.";
+  }
+  if (result.effect?.type === "download") {
+    return "Saved a local file. No email, calendar, or network.";
   }
   return "The action stayed on this page. No email, calendar, or external API was used.";
 }

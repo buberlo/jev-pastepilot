@@ -45,7 +45,7 @@ Do not expect a signed or notarized binary. There are no signing secrets in this
 | Piece | Role |
 | --- | --- |
 | WKWebView main window | The same PastePilot UI as the web prototype |
-| Bundled Node + `server.mjs` | Localhost-only server: static UI, `POST /api/decide`, `POST /api/save`, `/share` |
+| Bundled Node + `server.mjs` | Localhost-only server: static UI, `POST /api/decide`, `POST /api/save`, `POST /api/export`, `/share` |
 | Settings (`⌘,`) | Keychain API key, provider, model |
 | Services + `pastepilot://ingest` | Open/focus the app window with `?text=` |
 

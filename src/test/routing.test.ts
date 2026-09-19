@@ -50,11 +50,16 @@ describe("content routing", () => {
     expect(outcome.suggestions.length).toBeLessThanOrEqual(MAX_SUGGESTIONS);
   });
 
-  it("routes meeting text to draft-event only", async () => {
+  it("routes meeting text to draft-event plus complementary tools", async () => {
     const outcome = await routePaste("Lass uns morgen über das Projekt sprechen.");
     expect(outcome.status).toBe("select");
-    expect(outcome.suggestions.map((item) => item.toolId)).toEqual(["draft_event"]);
+    expect(outcome.suggestions.map((item) => item.toolId)).toEqual([
+      "draft_event",
+      "draft_email",
+      "capture_task",
+    ]);
     expect(outcome.primaryActionId).toBe("draft_event");
+    expect(outcome.suggestions.length).toBeLessThanOrEqual(MAX_SUGGESTIONS);
   });
 
   it("routes an idea to capture_idea", async () => {
@@ -70,13 +75,18 @@ describe("content routing", () => {
     expect(outcome.parsed.urls).toEqual(["https://example.com/docs"]);
   });
 
-  it("clarifies a short ambiguous phrase with fewer buttons and no primary action", async () => {
+  it("clarifies a short ambiguous phrase with useful buttons and no primary action", async () => {
     const outcome = await routePaste("Handle this.");
     expect(outcome.status).toBe("clarify");
     expect(outcome.primaryActionId).toBeNull();
     expect(outcome.decision?.actionId).toBeNull();
     expect(outcome.suggestions.length).toBeGreaterThan(0);
-    expect(outcome.suggestions.length).toBeLessThanOrEqual(2);
+    expect(outcome.suggestions.length).toBeLessThanOrEqual(MAX_SUGGESTIONS);
+    expect(outcome.suggestions.map((item) => item.toolId)).toEqual([
+      "capture_task",
+      "capture_idea",
+      "save_note",
+    ]);
   });
 
   it("abstains on injection and keeps only allowlisted fallbacks", async () => {
@@ -119,7 +129,29 @@ describe("content routing", () => {
     expect(outcome.fallbackTools.map((item) => item.toolId)).toEqual(["capture_task"]);
   });
 
-  it("keeps ordinary text on safe local tools and never exceeds three buttons", async () => {
+  it("routes a GitHub URL to open_github", async () => {
+    const outcome = await routePaste("https://github.com/buberlo/jev-pastepilot");
+    expect(outcome.status).toBe("select");
+    expect(outcome.primaryActionId).toBe("open_github");
+    expect(outcome.suggestions[0]?.toolId).toBe("open_github");
+  });
+
+  it("routes JSON to format_json instead of an empty state", async () => {
+    const outcome = await routePaste('{"service":"pastepilot","ok":true}');
+    expect(classify('{"service":"pastepilot","ok":true}')).toBe("ordinary");
+    expect(outcome.status).toBe("select");
+    expect(outcome.primaryActionId).toBe("format_json");
+    expect(outcome.suggestions.length).toBeGreaterThan(0);
+    expect(outcome.suggestions.length).toBeLessThanOrEqual(MAX_SUGGESTIONS);
+  });
+
+  it("routes an address-like paste to open_maps", async () => {
+    const outcome = await routePaste("221B Baker Street, London");
+    expect(outcome.status).toBe("select");
+    expect(outcome.primaryActionId).toBe("open_maps");
+  });
+
+  it("keeps ordinary text on useful tools and never exceeds three buttons", async () => {
     const outcome = await routePaste("The garden is quieter after rain.");
     expect(classify("The garden is quieter after rain.")).toBe("ordinary");
     expect(outcome.status).toBe("select");
@@ -166,12 +198,19 @@ describe("execution gate", () => {
     ).toBe("stale");
   });
 
-  it("rechecks the allowlist and returns a local stub only after confirm", () => {
+  it("rechecks the allowlist and drafts an .ics only after confirm", () => {
     const preview = buildPreview("draft_event", "Lass uns morgen treffen.", "v1");
-    const result = confirmExecution({ preview, currentStateVersion: "v1", confirmed: true });
+    const result = confirmExecution({
+      preview,
+      currentStateVersion: "v1",
+      confirmed: true,
+      input: "Lass uns morgen treffen.",
+    });
     expect(result.ok).toBe(true);
-    expect(result.effect?.type).toBe("stub");
-    expect(result.message).toMatch(/locally/i);
+    expect(result.effect?.type).toBe("download");
+    expect(result.effect?.filename).toBe("pastepilot-draft.ics");
+    expect(result.effect?.content).toMatch(/BEGIN:VEVENT/);
+    expect(result.effect?.content).toMatch(/not scheduled/i);
     expect(result.message).toMatch(/nothing was sent or scheduled/i);
     expect(
       confirmExecution({

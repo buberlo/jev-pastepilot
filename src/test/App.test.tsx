@@ -11,6 +11,12 @@ function mockSaveFetch() {
         json: async () => ({ path: ".local/pastepilot/inbox.md", count: 1 }),
       } as Response;
     }
+    if (url.includes("/api/export")) {
+      return {
+        ok: true,
+        json: async () => ({ path: ".local/pastepilot/pastepilot.json" }),
+      } as Response;
+    }
     return { ok: false, json: async () => ({}) } as Response;
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -47,19 +53,23 @@ describe("paste panel smoke", () => {
     expect(screen.queryByText("Nothing fitting.")).not.toBeInTheDocument();
   });
 
-  it("shows only Draft event after pasting meeting text", async () => {
+  it("shows Draft event plus complementary tools after pasting meeting text", async () => {
     render(<App />);
     await pasteIntoField("Lass uns morgen über das Projekt sprechen.");
     const actions = await screen.findByLabelText("Suggested actions");
-    expect(within(actions).getAllByRole("button")).toHaveLength(1);
+    const buttons = within(actions).getAllByRole("button");
+    expect(buttons).toHaveLength(3);
     expect(within(actions).getByRole("button", { name: "Draft event" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Draft email" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Save as task" })).toBeInTheDocument();
   });
 
-  it("clarifies a vague phrase with fewer buttons", async () => {
+  it("clarifies a vague phrase with useful buttons instead of an empty state", async () => {
     render(<App />);
     await pasteIntoField("Handle this.");
     const actions = await screen.findByLabelText("Suggested actions");
-    expect(within(actions).getAllByRole("button").length).toBeLessThanOrEqual(2);
+    expect(within(actions).getAllByRole("button").length).toBeLessThanOrEqual(3);
+    expect(within(actions).getByRole("button", { name: "Save as task" })).toBeInTheDocument();
     expect(screen.queryByText("Nothing fitting.")).not.toBeInTheDocument();
   });
 
@@ -204,5 +214,19 @@ describe("paste panel smoke", () => {
     expect(preview).toHaveTextContent("Time: 15:00");
     expect(preview).toHaveTextContent(/Nothing is sent, scheduled/);
     expect(screen.queryByText(/Prepared/)).not.toBeInTheDocument();
+  });
+
+  it("offers real tools for JSON and still requires Confirm before saving", async () => {
+    const fetchMock = mockSaveFetch();
+    render(<App />);
+    const user = await pasteIntoField('{"service":"pastepilot","ok":true}');
+    expect(screen.queryByText("Nothing fitting.")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Format JSON" }));
+    expect(screen.getByLabelText("Action preview")).toHaveTextContent(/pretty-print/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(fetchMock).toHaveBeenCalled();
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("/api/export");
+    expect(await screen.findByRole("status")).toHaveTextContent(/Saved to/);
   });
 });

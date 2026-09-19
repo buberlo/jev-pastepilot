@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import { handleShareRequest } from "../domain/share.ts";
 import { runDecide } from "./decide.ts";
+import { runExport } from "./export.ts";
 import { runSave } from "./save.ts";
 
 export type ApiResponse = {
@@ -58,6 +59,14 @@ export async function handleApiRequest(args: {
       return json(405, { error: "method_not_allowed" });
     }
     const result = await runSave(args.body ?? "");
+    return json(result.status, result.body);
+  }
+
+  if (pathOnly === "/api/export") {
+    if (method !== "POST") {
+      return json(405, { error: "method_not_allowed" });
+    }
+    const result = await runExport(args.body ?? "");
     return json(result.status, result.body);
   }
 

@@ -99,7 +99,7 @@ struct PastePilotWebView: NSViewRepresentable {
                 decisionHandler(.allow)
                 return
             }
-            if target.scheme == "http" || target.scheme == "https" {
+            if isExternalConfirmURL(target) {
                 NSWorkspace.shared.open(target)
             }
             decisionHandler(.cancel)
@@ -111,10 +111,15 @@ struct PastePilotWebView: NSViewRepresentable {
             for navigationAction: WKNavigationAction,
             windowFeatures: WKWindowFeatures
         ) -> WKWebView? {
-            if let target = navigationAction.request.url, target.scheme == "http" || target.scheme == "https" {
+            if let target = navigationAction.request.url, isExternalConfirmURL(target) {
                 NSWorkspace.shared.open(target)
             }
             return nil
+        }
+
+        private func isExternalConfirmURL(_ url: URL) -> Bool {
+            let scheme = url.scheme?.lowercased()
+            return scheme == "http" || scheme == "https" || scheme == "mailto"
         }
 
         private func isBundledOrigin(_ url: URL) -> Bool {

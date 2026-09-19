@@ -1,5 +1,6 @@
 import { classify } from "./classify";
-import { CLARIFY_TOOLS, isToolId, KIND_TOOLS, offeredToolIds, toolLabel, TOOLS } from "./tools";
+import { parseFacts } from "./parsers";
+import { CLARIFY_TOOLS, isToolId, offeredToolIds, preferredTools, toolLabel, TOOLS } from "./tools";
 import type {
   ContentKind,
   DecisionProviderId,
@@ -34,7 +35,9 @@ export function heuristicDecide(
     return finish(request, provider, hasClarify ? "clarify" : "abstain", null);
   }
 
-  const selected = KIND_TOOLS[kind].find((id) => offered.has(id)) ?? null;
+  const selected =
+    preferredTools(kind, request.input, parseFacts(request.input)).find((id) => offered.has(id)) ??
+    null;
   if (!selected) {
     return finish(request, provider, "abstain", null);
   }

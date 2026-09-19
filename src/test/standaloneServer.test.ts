@@ -101,6 +101,19 @@ describe("standalone listener", () => {
       const body = (await saved.json()) as { path?: string; count?: number };
       expect(body.count).toBe(1);
       expect(body.path).toContain(dataDir);
+
+      const exported = await fetch(`${running.url}/api/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: "pastepilot.json",
+          content: '{\n  "ok": true\n}\n',
+        }),
+      });
+      expect(exported.ok).toBe(true);
+      const exportedBody = (await exported.json()) as { path?: string };
+      expect(exportedBody.path).toContain(dataDir);
+      expect(exportedBody.path).toContain("pastepilot.json");
     } finally {
       await running.close();
       if (previous === undefined) {
