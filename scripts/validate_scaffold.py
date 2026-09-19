@@ -37,7 +37,7 @@ def validate() -> int:
         scenario = item.get('scenario')
         if scenario is not None and scenario not in {'timeout', 'malformed', 'stale', 'unknown_action', 'select_without_id', 'quota', 'low_confidence', 'mid_confidence'}:
             errors.append(f'{cid}: unknown scenario')
-    skip_parts = {'.git', 'node_modules', 'dist', 'coverage'}
+    skip_parts = {'.git', 'node_modules', 'dist', 'coverage', 'bundled'}
     sdk_skip = skip_parts | {'server', 'test'}
     for page in (ROOT / 'src').rglob('*'):
         if not page.is_file() or page.suffix not in {'.ts', '.tsx'}:
@@ -75,6 +75,10 @@ def validate() -> int:
                 errors.append('mac-release.yml must run on macos-latest')
             if 'macos/PastePilotService/build.sh' not in text:
                 errors.append('mac-release.yml must call macos/PastePilotService/build.sh')
+            if 'macos/bundle-web.sh' not in text:
+                errors.append('mac-release.yml must bundle the web UI via macos/bundle-web.sh')
+            if 'bundle-runtime.sh' not in text:
+                errors.append('mac-release.yml must embed a Node runtime via bundle-runtime.sh')
             if 'PastePilot-mac.zip' not in text:
                 errors.append('mac-release.yml must publish PastePilot-mac.zip')
             if 'softprops/action-gh-release' not in text:

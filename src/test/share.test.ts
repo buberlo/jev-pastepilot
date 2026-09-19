@@ -2,6 +2,7 @@ import {
   handleShareRequest,
   parseShareBody,
   readSharedText,
+  shareAppSchemeUrl,
   shareAppUrl,
   shareRedirectPath,
 } from "../domain/share";
@@ -40,6 +41,14 @@ describe("URL share ingest", () => {
     expect(JSON.stringify(shareAppUrl("hello", "http://localhost:5173", { provider: "jev" }))).not.toMatch(
       /TYPESAFE|sk-/,
     );
+  });
+
+  it("builds a pastepilot:// ingest URL for the Mac app", () => {
+    expect(shareAppSchemeUrl("hello world")).toBe("pastepilot://ingest?text=hello+world");
+    expect(shareAppSchemeUrl("hello world", { provider: "jev" })).toBe(
+      "pastepilot://ingest?provider=jev&text=hello+world",
+    );
+    expect(shareAppSchemeUrl("hello", { provider: "jev" })).not.toMatch(/TYPESAFE|sk-/);
   });
 });
 

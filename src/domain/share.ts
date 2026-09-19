@@ -121,6 +121,8 @@ export function handleShareRequest(args: {
   return null;
 }
 
+export const PASTEPILOT_APP_SCHEME = "pastepilot";
+
 export function shareAppUrl(
   text: string,
   base = "http://localhost:5173",
@@ -133,4 +135,15 @@ export function shareAppUrl(
     extra.set("provider", provider);
   }
   return `${origin}${shareRedirectPath(text, extra.toString())}`;
+}
+
+/** Custom scheme the Mac app registers. Never includes TYPESAFE_API_KEY. */
+export function shareAppSchemeUrl(text: string, options: { provider?: string } = {}): string {
+  const extra = new URLSearchParams();
+  const provider = options.provider?.trim().toLowerCase();
+  if (provider === "jev" || provider === "local") {
+    extra.set("provider", provider);
+  }
+  extra.set("text", text);
+  return `${PASTEPILOT_APP_SCHEME}://ingest?${extra.toString()}`;
 }

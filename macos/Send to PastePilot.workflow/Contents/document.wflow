@@ -48,7 +48,7 @@
 				<dict>
 					<key>source</key>
 					<string>-- PastePilot Quick Action / Services
--- Selected text → http://localhost:5173/?text=…
+-- Selected text → pastepilot://ingest?text=…
 -- Explicit invoke only. Does not watch the clipboard.
 
 on encodeText(theText)
@@ -64,7 +64,7 @@ on run {input, parameters}
 		display notification "Select text first, then choose PastePilot." with title "PastePilot"
 		return input
 	end if
-	set dest to "http://localhost:5173/?text=" &amp; encodeText(theText)
+	set dest to "pastepilot://ingest?text=" &amp; encodeText(theText)
 	open location dest
 	return input
 end run

@@ -17,16 +17,29 @@ describe("Mac Settings source", () => {
     const keychain = await readFile(path.join(root, "KeychainStore.swift"), "utf8");
     const builder = await readFile(path.join(root, "ShareURLBuilder.swift"), "utf8");
     const app = await readFile(path.join(root, "PastePilotApp.swift"), "utf8");
+    const web = await readFile(path.join(root, "MainWebView.swift"), "utf8");
+    const server = await readFile(path.join(root, "LocalServer.swift"), "utf8");
+    const service = await readFile(path.join(root, "ServiceProvider.swift"), "utf8");
 
     expect(view).toContain("SecureField");
     expect(view).toContain("SettingsView");
-    expect(app).toContain("WindowGroup(\"PastePilot Settings\")");
+    expect(app).toContain("WindowGroup(\"PastePilot\")");
+    expect(app).toContain("Settings");
+    expect(web).toContain("WKWebView");
+    expect(server).toContain("TYPESAFE_API_KEY");
+    expect(server).toContain("PASTEPILOT_READY");
+    expect(server).toContain("127.0.0.1");
+    expect(server).not.toMatch(/print\(|NSLog\(|os_log/);
+    expect(service).toContain("IngestStore.shared.ingest");
+    expect(service).not.toContain("NSWorkspace.shared.open");
     expect(keychain).toContain("local.pastepilot.typesafe");
     expect(keychain).toContain("kSecClassGenericPassword");
     expect(builder).toContain("Never puts TYPESAFE_API_KEY");
+    expect(builder).toContain("pastepilot");
     expect(builder).not.toMatch(/queryItem\(name: \"(key|apiKey|TYPESAFE_API_KEY)\"/i);
     expect(view).not.toMatch(SECRETISH);
     expect(keychain).not.toMatch(SECRETISH);
+    expect(server).not.toMatch(SECRETISH);
   });
 
   it("keeps a layout preview for Linux screenshots", async () => {
@@ -66,6 +79,13 @@ describe("share helper reads Settings without leaking the key", () => {
     expect(script).toContain("Never prints TYPESAFE_API_KEY");
     expect(script).not.toMatch(/echo\s+"\$\{?TYPESAFE_API_KEY/);
     expect(script).not.toMatch(/printf.*\$\{?TYPESAFE_API_KEY/);
+    expect(script).not.toMatch(SECRETISH);
+  });
+
+  it("opens the Mac app scheme instead of a browser by default", async () => {
+    const script = await readFile(path.join(repoRoot, "macos/share-to-pastepilot.sh"), "utf8");
+    expect(script).toContain("pastepilot://ingest");
+    expect(script).toContain("--web");
     expect(script).not.toMatch(SECRETISH);
   });
 });

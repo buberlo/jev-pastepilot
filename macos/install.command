@@ -26,17 +26,16 @@ fi
 cat <<'EOF'
 Installed: Send to PastePilot
 
-1. Keep PastePilot running:
-     npm run dev
-   (http://localhost:5173)
+1. Open PastePilot.app (download from GitHub Releases, or build macos/PastePilotService).
+   The main window is PastePilot. No Terminal or npm run dev needed.
 
 2. In any app, select text → Services → Send to PastePilot
    If it is missing: System Settings → Keyboard → Keyboard Shortcuts → Services
    Enable “Send to PastePilot” under Text.
 
-3. The browser opens with the text filled. Preview → Confirm is still required.
+3. The PastePilot window opens with the text filled. Preview → Confirm is still required.
 
-This is a Quick Action / Service, not a notarized Mac app.
+This is a Quick Action / Service. The release .app is ad-hoc / not notarized.
 EOF
 
 if [[ -t 0 ]]; then

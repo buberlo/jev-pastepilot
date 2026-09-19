@@ -11,10 +11,13 @@ let package = Package(
         .executableTarget(
             name: "PastePilotService",
             path: ".",
-            exclude: ["build.sh", "Info.plist"],
+            exclude: ["build.sh", "bundle-runtime.sh", "Info.plist", "bundled", "dist"],
             sources: [
                 "AppSettings.swift",
+                "IngestStore.swift",
                 "KeychainStore.swift",
+                "LocalServer.swift",
+                "MainWebView.swift",
                 "PastePilotApp.swift",
                 "ServiceProvider.swift",
                 "SettingsView.swift",
@@ -22,8 +25,10 @@ let package = Package(
             ],
             linkerSettings: [
                 .linkedFramework("AppKit"),
+                .linkedFramework("Combine"),
                 .linkedFramework("SwiftUI"),
                 .linkedFramework("Security"),
+                .linkedFramework("WebKit"),
             ]
         ),
     ]

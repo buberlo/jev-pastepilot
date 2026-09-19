@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:standalone": "node scripts/build-standalone.mjs",
+    "build:mac-web": "macos/bundle-web.sh",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -23,6 +25,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",

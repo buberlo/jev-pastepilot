@@ -16,7 +16,8 @@ describe("macOS install artifacts", () => {
     expect((await stat(path.join(workflow, "document.wflow"))).isFile()).toBe(true);
     expect((await stat(path.join(repoRoot, "macos/install.command"))).isFile()).toBe(true);
     const wflow = await readFile(path.join(workflow, "document.wflow"), "utf8");
-    expect(wflow).toContain("http://localhost:5173/?text=");
+    expect(wflow).toContain("pastepilot://ingest?text=");
+    expect(wflow).not.toContain("http://localhost:5173/?text=");
     expect(wflow).toContain("Explicit invoke only");
     expect(wflow).toContain("Does not watch the clipboard");
   });
@@ -28,7 +29,7 @@ describe("macOS install artifacts", () => {
     });
     const dest = path.join(home, "Library/Services/Send to PastePilot.workflow/Contents/document.wflow");
     expect((await stat(dest)).isFile()).toBe(true);
-    expect(await readFile(dest, "utf8")).toContain("http://localhost:5173/?text=");
+    expect(await readFile(dest, "utf8")).toContain("pastepilot://ingest?text=");
   });
 
   it("wrapper still prints the current share URL", () => {

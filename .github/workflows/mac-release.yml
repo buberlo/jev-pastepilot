@@ -1,5 +1,6 @@
-# Build the Mac Settings / Services .app and publish it on GitHub Releases.
-# Linux / this cloud VM cannot produce the binary — macos-latest must.
+# Build the Mac PastePilot.app (WKWebView + bundled Node server) and publish
+# it on GitHub Releases. Linux / this cloud VM cannot produce the binary —
+# macos-latest must.
 #
 # Release scheme (also in README.md and macos/README.md):
 # - Push to main → replace the rolling release tagged `mac-latest`
@@ -21,6 +22,12 @@ on:
     paths:
       - 'macos/**'
       - '.github/workflows/mac-release.yml'
+      - 'src/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.ts'
+      - 'scripts/build-standalone.mjs'
   workflow_dispatch:
     inputs:
       publish:
@@ -43,6 +50,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Bundle production UI + standalone server
+        run: ./macos/bundle-web.sh
+
+      - name: Download embedded Node runtime
+        run: ./macos/PastePilotService/bundle-runtime.sh
 
       - name: Build PastePilot.app
         run: ./macos/PastePilotService/build.sh
@@ -75,6 +97,9 @@ jobs:
             exit 1
           fi
           test -x "$tmp/PastePilot.app/Contents/MacOS/PastePilot"
+          test -f "$tmp/PastePilot.app/Contents/Resources/web/index.html"
+          test -f "$tmp/PastePilot.app/Contents/Resources/server/server.mjs"
+          test -x "$tmp/PastePilot.app/Contents/Resources/runtime/node"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v5
@@ -129,13 +154,15 @@ jobs:
           fail_on_unmatched_files: true
           make_latest: true
           body: |
-            Unsigned / ad-hoc Mac build of `PastePilot.app` (Settings + Services).
+            Unsigned / ad-hoc **Mac v1** build of `PastePilot.app`.
+
+            The main window is PastePilot (WKWebView + bundled local Node server). Settings is ⌘,. Services open the app window, not a browser.
 
             - Commit: `${{ github.sha }}`
             - Runner: `macos-latest` (Apple Silicon)
             - **Not signed with Developer ID and not notarized.** Gatekeeper will block a double-click. Right-click the app → **Open**.
             - Does **not** contain `TYPESAFE_API_KEY`. Save the key in Keychain via **PastePilot → Settings…**. Never commit it.
 
-            Install: unzip `PastePilot-mac.zip`, move `PastePilot.app` to `/Applications`, right-click → Open. Then start the web app (`./macos/run-dev-with-keychain.sh` or `npm run dev`).
+            Install: unzip `PastePilot-mac.zip`, move `PastePilot.app` to `/Applications`, right-click → Open. No Terminal or `npm run dev` for normal use.
 
             See `macos/README.md`.

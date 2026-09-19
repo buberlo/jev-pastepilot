@@ -1,7 +1,7 @@
 import AppKit
 
-/// Selected text → local PastePilot URL. Reads server URL + provider from Settings.
-/// Does not read or send the API key. No clipboard watcher.
+/// Selected text → in-app PastePilot window (`/?text=`).
+/// Does not open a browser. Does not read or send the API key. No clipboard watcher.
 final class ServiceProvider: NSObject {
     @objc func handlePastePilot(
         _ pboard: NSPasteboard,
@@ -14,14 +14,6 @@ final class ServiceProvider: NSObject {
             error.pointee = "Select text first, then choose PastePilot."
             return
         }
-        guard let url = ShareURLBuilder.ingestURL(
-            text: text,
-            base: AppSettings.serverURL,
-            provider: AppSettings.provider
-        ) else {
-            error.pointee = "Could not build PastePilot URL."
-            return
-        }
-        NSWorkspace.shared.open(url)
+        IngestStore.shared.ingest(text)
     }
 }
