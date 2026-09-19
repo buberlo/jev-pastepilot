@@ -34,6 +34,12 @@ describe("URL share ingest", () => {
 
   it("builds the local app URL the Mac wrapper opens", () => {
     expect(shareAppUrl("hello world")).toBe("http://localhost:5173/?text=hello+world");
+    expect(shareAppUrl("hello world", "http://localhost:5173", { provider: "jev" })).toBe(
+      "http://localhost:5173/?provider=jev&text=hello+world",
+    );
+    expect(JSON.stringify(shareAppUrl("hello", "http://localhost:5173", { provider: "jev" }))).not.toMatch(
+      /TYPESAFE|sk-/,
+    );
   });
 });
 

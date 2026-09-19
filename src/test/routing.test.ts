@@ -62,6 +62,14 @@ describe("content routing", () => {
     expect(outcome.primaryActionId).toBe("capture_idea");
   });
 
+  it("routes a bare URL to open_url", async () => {
+    const outcome = await routePaste("https://example.com/docs");
+    expect(outcome.status).toBe("select");
+    expect(outcome.primaryActionId).toBe("open_url");
+    expect(outcome.suggestions[0]?.toolId).toBe("open_url");
+    expect(outcome.parsed.urls).toEqual(["https://example.com/docs"]);
+  });
+
   it("clarifies a short ambiguous phrase with fewer buttons and no primary action", async () => {
     const outcome = await routePaste("Handle this.");
     expect(outcome.status).toBe("clarify");
@@ -162,6 +170,7 @@ describe("execution gate", () => {
     const preview = buildPreview("draft_event", "Lass uns morgen treffen.", "v1");
     const result = confirmExecution({ preview, currentStateVersion: "v1", confirmed: true });
     expect(result.ok).toBe(true);
+    expect(result.effect?.type).toBe("stub");
     expect(result.message).toMatch(/locally/i);
     expect(result.message).toMatch(/nothing was sent or scheduled/i);
     expect(

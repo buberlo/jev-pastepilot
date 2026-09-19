@@ -67,15 +67,25 @@ Implemented behaviour:
 - Fail-open: missing key, timeout, quota/rate-limit, or a malformed System One body leaves the text editable and shows the safe manual-tool list. The app does not crash and does not pretend a live success.
 - `local` remains the optional SemIf/offline heuristic. No 4B GPU is required. Default for demos without a key: `mock`.
 - Live accuracy is **not** claimed. Recorded HTTP fixtures cover adapter validation, parallel combining, and gates. A live E2E test exists and is skipped unless `TYPESAFE_API_KEY` is set locally (`src/test/jev.live.test.ts`).
-- Confirm is still required. The stub still does not email, write a calendar, or call an external API. Pasted content remains untrusted data.
+- Confirm is still required. Pasted content remains untrusted data.
+
+## Local Confirm adapters
+
+**Done in this repository.** Confirm still never auto-runs. After the execution gate and `stateVersion` check, two local adapters are wired:
+
+- **Open link** — if parsers found a URL, Confirm opens the first allowlisted `http`/`https` link in the browser. `javascript:`, `data:`, `file:`, credentials, and other schemes are rejected.
+- **Save idea / task / note** — Confirm appends a markdown block to a local inbox (dev server: `POST /api/save` → `.local/pastepilot/inbox.md` or `PASTEPILOT_DATA_DIR`). If the server is unavailable, the browser downloads a markdown snippet. No email, calendar, or other network write.
+
+Unwired catalogue tools (`draft_event`, `open_log_viewer`, `search_docs`) stay local stubs. Share ingest is unchanged: fill the field, route, preview, Confirm.
 
 Live accuracy is not claimed in this repository. Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Pin `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version; the alias can move. The response `model` field reports the versioned id. Measure routing on your own labelled set; do not substitute a vendor claim.
 
 ### Remaining north-star (not MS3)
 
-- A real signed Mac `.app` / production Services build (the Share-slice is a thin wrapper + URL ingest).
+- A real signed / notarized Mac `.app` (this repo ships an importable Quick Action plus SwiftUI Settings source that stores the TypeSafe key in Keychain; a Linux VM cannot notarize).
 - A Windows tray / Share target that opens the same `/?text=` URL.
 - More tool integrations, each with its own permission and confirmation flow.
+- Live TypeSafe measurement on a labelled set (not part of the Confirm-adapters slice).
 
 ## Acceptance criteria
 
@@ -91,4 +101,4 @@ Passive clipboard surveillance, autonomous browsing, automatic email sending and
 
 ## Delivery boundary
 
-Milestones 1–3 and the Share-slice are implemented and can be reproduced with the README commands. Remaining north-star surfaces are not part of this milestone.
+Milestones 1–3, the Share-slice, and the local Confirm adapters are implemented and can be reproduced with the README commands. Remaining north-star surfaces are not part of this milestone.

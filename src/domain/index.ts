@@ -9,8 +9,16 @@ export {
 } from "./decisionLayer";
 export { confirmExecution } from "./execute";
 export { logOperational } from "./log";
+export { allowlistedHttpUrl, firstAllowlistedUrl } from "./openUrl";
 export { parseFacts } from "./parsers";
+export { openConfirmedUrl, persistLocalSave } from "./persist";
 export { buildPreview } from "./preview";
+export {
+  buildLocalSaveEntry,
+  isLocalSaveTool,
+  LOCAL_SAVE_TOOL_IDS,
+  type LocalSaveToolId,
+} from "./saveLocal";
 export {
   createProvider,
   wrapProvider,
