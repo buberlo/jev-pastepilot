@@ -95,7 +95,7 @@ Invoked only after Confirm. In `PastePilot.app`, the WKWebView posts to `webkit.
 
 Injection still abstains. The UI still shows at most three buttons. CI `mac-release` rebuilds the `.app` on merge to `main`.
 
-Linux CI cannot open Finder. The suggestion UI is covered by tests and [docs/demo](../docs/demo/). On a Mac, Confirm opens Finder for real.
+Linux CI cannot open Finder. The suggestion UI is covered by tests and [docs/demo](../docs/demo/) (`path-users-konrad-buttons.png`, `path-paste-finder-confirm.mp4`). On a Mac, Confirm opens Finder for real.
 
 The WKWebView never sees the key. Saving Settings restarts the bundled server so a new key, model, browser, or Shortcut name is picked up.
 

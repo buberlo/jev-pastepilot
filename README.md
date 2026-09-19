@@ -11,6 +11,19 @@ Paste or share some text. Get at most three actions. Confirm before anything hap
 
 ![Preview, then a single Confirm](docs/demo/preview-confirm.png)
 
+**Path paste (Konrad repro).** Paste `/Users/konrad/` or `~/Desktop`. **Open in Finder** and **Open in Terminal** appear — including when Provider is live `jev`. Confirm is still required. On the Mac app, Confirm opens Finder in Swift. This Linux recording shows the suggestion UI and the honest web fallback.
+
+<video src="docs/demo/path-paste-finder-confirm.mp4" controls playsinline muted width="720" title="Paste a path, see Open in Finder, Confirm">
+</video>
+
+![Paste /Users/konrad/ — Open in Finder and Open in Terminal](docs/demo/path-users-konrad-buttons.png)
+
+![Preview and Confirm for Open in Finder](docs/demo/path-users-konrad-confirm.png)
+
+![After Confirm on Linux: labeled Mac-only fallback](docs/demo/path-users-konrad-after-confirm.png)
+
+![Same Finder buttons with ?provider=jev](docs/demo/path-jev-finder-buttons.png)
+
 ## What it is
 
 A small launcher, **not a chatbot**.
