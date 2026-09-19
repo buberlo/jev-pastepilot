@@ -8,7 +8,7 @@ The included JSON cases are **hand-labelled synthetic acceptance examples**, not
 2. Domain tests in `src/test/` enforce the deterministic acceptance criteria in [MVP](MVP.md), including the labelled cases in `examples/cases.json`. Coverage includes parsers, DecisionResult validation, routing, operational failure paths, and URL/share ingest. UI smoke lives in `src/test/App.test.tsx` and `src/test/shareIngest.test.tsx`.
 3. Provider tests compare held-out inputs with expected semantic results for the offline mock/local adapters. The Jev adapter is tested with recorded/mocked HTTP fixtures that match the official System One choice shape (`src/test/jevAdapter.test.ts`, `src/test/fixtures/`).
 4. End-to-end tests cover timeout, malformed output, quota, stale versions, missing key, ineligible candidates and the manual/offline path.
-5. **Live E2E (requires local key):** `src/test/jev.live.test.ts` is skipped unless `TYPESAFE_API_KEY` is set. It is not run in this agent environment and is not a vendor accuracy claim.
+5. **Live E2E (requires local key):** `src/test/jev.live.test.ts` is skipped unless `TYPESAFE_API_KEY` is set. It is not a vendor accuracy claim.
 
 ## Measurements
 

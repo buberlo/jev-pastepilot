@@ -1,45 +1,55 @@
 # PastePilot
 
-Explicit paste-to-action launcher that routes text to useful tools without automatic side effects.
+Paste or share some text. Get a few useful actions. Confirm before anything happens.
 
-## Status
+<video src="docs/demo/pastepilot-core.mp4" controls playsinline muted width="720" title="PastePilot: paste text, pick an action, confirm">
+</video>
 
-**Milestone 3 is implemented:** a server-side TypeSafe Jev adapter behind the existing `mock` | `local` | `jev` boundary, with fail-open behaviour and recorded HTTP fixture tests. The Share-slice (URL ingest + thin Mac wrapper) and the MS2 decision contract stay in place.
+[Watch the 9-second demo](docs/demo/pastepilot-core.mp4) — paste a log line → a few buttons → preview → Confirm. Nothing runs until you say so. The clip is silent and uses the offline mock (no API key).
 
-The UI is still one paste page: ≤3 action buttons, preview → Confirm. No taxonomy, confidence, or provider chrome.
+![After paste, PastePilot offers at most three actions](docs/demo/paste-actions.png)
 
-A milestone is complete only when its behaviour can be reproduced locally. This tree can: `npm install`, `npm run dev`, `npm test`, and `npm run build`.
+![Preview, then a single Confirm — still a local stub](docs/demo/preview-confirm.png)
 
-Live accuracy is **not** claimed here. This environment had no `TYPESAFE_API_KEY`, so no live TypeSafe call was made. Adapter tests use mocked HTTP fixtures. A live E2E test exists and is skipped without a local key.
+PastePilot is a small launcher, not a chatbot. You give it text. It suggests at most three things you might do with that text. You pick one, read a short preview, and tap Confirm. Until then, nothing is sent, scheduled, or written.
 
-## Product
+## What it is
 
-One page. A large paste field. After paste **or Share**, at most three large action buttons — or a clear “nothing fitting” / “couldn’t decide” empty state. Tap a button to see a short preview, then a single Confirm. Nothing executes without Confirm.
+You paste (or Share) a log line, a meeting note, a link, or an idea. PastePilot offers a short list of allowlisted actions — for example **Open log viewer**, **Draft event**, or **Save idea**. Tap a button to see a preview. Confirm is still a local preview today: it does not send mail, write a calendar, or call an external API.
 
-Pasted or shared text is untrusted data. Content kinds stay internal; the UI never shows a taxonomy, confidence score, or provider chrome.
+Routing is typed: a classifier picks from a fixed tool list. Exact dates, URLs, and emails are parsed in ordinary code and shown in the preview. They never invent a send or a schedule.
 
-### Example experience
+## Why it exists
 
-Paste or Share a service startup error. The interface offers a log viewer (and a docs search when that tool is allowlisted). A meeting proposal offers **Draft event** only. Confirm opens a local stub. Nothing is sent or scheduled.
+Most “do something with this text” tools either chat at you or quietly act on a clipboard. PastePilot is the opposite.
 
-### Model boundary
+- You start it. It does not watch the clipboard in the background.
+- It routes to a short allowlist of tools, not a general agent.
+- If it cannot decide, the text stays put and you pick a safe tool yourself.
+- Confirm is a gate, not a formality.
 
-Semantic responsibility: classify pasted text and choose one allowlisted action (`mock`, `local`, or live `jev`).
+## Where it is going
 
-Code remains authoritative for: exact URL/date/time/parameter parsing, the DecisionResult contract, permissions, confirmation, and execution. Parsed values feed the preview; they never invent a send or schedule.
+The product we want feels like a Share Sheet, a Mac Services item, or a right-click: select text, send it to PastePilot, pick one action.
 
-## Run locally (web)
+The web paste page is the working prototype of that loop. A thin Mac Share / Services path already opens the same page with the text filled in.
 
-Requires Node.js 20+ and npm. From the repository root:
+## What it is not
+
+- **Not clipboard spyware.** No background watcher. Paste and Share are explicit.
+- **Not auto-email or auto-calendar.** Confirm never sends or schedules.
+- **Not an autonomous agent.** No browsing, no shell, no silent writes.
+
+## Quick start
+
+Needs Node.js 20+ and npm. The default mock router needs **no API key**.
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (typically `http://localhost:5173`). Paste with Ctrl+V / Cmd+V or the Paste button. There is no background clipboard watcher.
-
-Default provider is **mock**. No API key is required.
+Open the URL Vite prints (usually `http://localhost:5173`). Paste with Ctrl+V / Cmd+V or the **Paste** button.
 
 ```sh
 npm test
@@ -47,137 +57,74 @@ npm run build
 python3 scripts/validate_scaffold.py
 ```
 
-`pnpm install` / `pnpm test` / `pnpm dev` also work if you prefer pnpm; this repo commits the npm lockfile (`package-lock.json`).
+`pnpm install` / `pnpm test` / `pnpm dev` also work if you prefer pnpm. This repo commits the npm lockfile (`package-lock.json`).
 
-### Enable live Jev
+## Live Jev (optional)
 
-1. Copy [`.env.example`](.env.example) to a local `.env` (gitignored). Never commit a real key.
-2. Set the server credential only:
+Default routing is the offline mock. To try live TypeSafe Jev routing:
 
-```sh
-export TYPESAFE_API_KEY=…   # do not commit, do not log
-```
+1. Copy [`.env.example`](.env.example) to a local `.env` (gitignored).
+2. Set `TYPESAFE_API_KEY` there or in your shell. Never commit a real key. Never log it.
+3. Open `http://localhost:5173/?provider=jev`, or start with `DECISION_PROVIDER=jev npm run dev`.
 
-3. Switch the provider (query wins; env is the default when the query is omitted):
+The browser never sees the key. It posts a routing request to local `POST /api/decide`. Selecting Jev sends the pasted text to TypeSafe for **routing only**. Confirm is still the local stub.
 
-```sh
-# one-off in the URL
-http://localhost:5173/?provider=jev
+If the key is missing or the call fails, PastePilot **fail-opens**: the text stays editable and you get the same safe manual tools. It does not crash and does not pretend a live success.
 
-# or start with an env default (still no UI chrome)
-DECISION_PROVIDER=jev TYPESAFE_API_KEY=… npm run dev
-```
+Do not treat this README, a vendor claim, or a confidence score as a measured accuracy result. If you run a live call, record the SDK version and the response `model` field with your own sample.
 
-The browser never sees the key. It posts a domain `DecisionRequest` to local `POST /api/decide`. The Vite server adapter uses pinned `@typesafe-ai/sdk@0.6.0` and `TypeSafeClient.systemOne` (`choice` question). Documented default model: `jev-latest` (currently `jev-1.13.0`). Override with `TYPESAFE_MODEL` if you pin a version.
+Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test` — see `src/test/jev.live.test.ts`.
 
-Selecting `jev` sends the pasted text to TypeSafe for routing only. Confirm still stays on the local stub: no email, calendar, or other external write.
+## Share from a Mac
 
-**Measure live accuracy yourself.** Do not treat a vendor claim, confidence score, or this README as a measured result. If you run a live call, record the SDK version (`0.6.0`) and the response `model` field with the sample.
+Install steps live in [macos/README.md](macos/README.md).
 
-Live E2E (skipped without a key):
+Short version: keep `npm run dev` running, then send selected text through a Quick Action, Shortcut, or the optional Swift Service. The browser opens with the field filled and at most three actions. Confirm is still required.
 
-```sh
-TYPESAFE_API_KEY=… npm test
-```
+`--clipboard` on the helper script is an explicit flag. There is no passive clipboard surveillance.
 
-See `src/test/jev.live.test.ts` — marked **requires local key**.
+Windows share / tray is not built yet. A later slice can open the same `/?text=` URL.
 
-### Switch provider
-
-| How | Result |
-| --- | --- |
-| *(default)* | `mock` — offline heuristic, no key, no network |
-| `?provider=local` or `DECISION_PROVIDER=local` | Same offline heuristic, labelled `local` (optional SemIf stand-in; no GPU) |
-| `?provider=jev` or `DECISION_PROVIDER=jev` | Live adapter via `/api/decide` |
-
-Without a key, `jev` fail-opens: the field stays editable and the page offers the safe manual tools. It does not crash and does not pretend a live success.
-
-### Failure-path demos
-
-The page stays one paste field. These query flags wrap the adapter for local checks. They combine with share ingest:
-
-```
-http://localhost:5173/?scenario=timeout
-http://localhost:5173/?scenario=malformed
-http://localhost:5173/?scenario=quota
-http://localhost:5173/?scenario=stale
-http://localhost:5173/?provider=local
-http://localhost:5173/?provider=jev
-http://localhost:5173/?scenario=timeout&text=Service%20failed
-```
-
-On timeout, malformed output, quota, stale `stateVersion`, missing key, or an invalid contract, the text stays editable and the page offers the same safe manual tools.
-
-Share ingest (same routing, still preview → Confirm):
-
-```
-http://localhost:5173/?text=Service%20failed%3A%20connection%20refused%20on%20the%20database%20socket.
-http://localhost:5173/?q=Lass%20uns%20morgen%20%C3%BCber%20das%20Projekt%20sprechen.
-```
-
-```sh
-curl -sS -D - -o /dev/null -X POST \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  --data-urlencode "text=An app that lets me assemble virtual model kits." \
-  http://localhost:5173/share
-```
-
-## macOS Share / Services
-
-Exact install steps: [macos/README.md](macos/README.md).
-
-Short version:
-
-1. Keep `npm run dev` running.
-2. `./macos/share-to-pastepilot.sh --print-url "your text"` proves the URL.
-3. On a Mac, install the Automator Quick Action from [`macos/PastePilot.applescript`](macos/PastePilot.applescript), or a Shortcut that runs [`macos/share-to-pastepilot.sh`](macos/share-to-pastepilot.sh).
-4. Optional: build the Swift Service on a Mac with [`macos/PastePilotService/build.sh`](macos/PastePilotService/build.sh). This cloud/Linux environment cannot produce the `.app`.
-
-Select text → Services / Shortcut → browser opens with the field filled and ≤3 actions. Confirm is still required.
-
-`--clipboard` on the shell script is an explicit flag only. No passive clipboard surveillance.
-
-## What is done vs next
+## Status
 
 | Slice | Status |
 | --- | --- |
-| **MS1** — offline paste page, ≤3 actions, preview → Confirm | Done |
-| **MS2** — parsers, DecisionResult contract, replaceable adapter, failure paths | Done |
-| **Share-slice** — URL / `POST /share` ingest + thin Mac Services / Shortcuts wrapper | Done |
-| **MS3** — server-side Jev adapter, fail-open, fixture tests, local provider still selectable | Done |
-| **North-star** — real signed Mac `.app`, Windows tray / Share target, more tool integrations | Not started |
+| **MS1** — paste page, ≤3 actions, preview → Confirm | Done |
+| **MS2** — parsers, allowlisted actions, replaceable router, failure paths | Done |
+| **Share** — URL ingest + thin Mac Services / Shortcuts wrapper | Done |
+| **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
+| **Next** — signed Mac `.app`, Windows share / tray, more tools | Not started |
 
-See [docs/MVP.md](docs/MVP.md).
+A slice is done when you can reproduce it with the commands above. See [docs/MVP.md](docs/MVP.md).
 
-## Milestone 3 in this tree
+## Safety
 
-- Server-side TypeSafe adapter (`src/server/`) behind `createProvider("jev")`. The UI imports no `@typesafe-ai/sdk` types.
-- Credentials from `TYPESAFE_API_KEY` only. Never committed. Never logged. Paste contents are not logged by default (`logLevel: "off"` on the SDK client).
-- Fail-open on missing key, timeout, quota, and malformed System One responses.
-- `local` remains selectable; no GPU required. Default without a key: `mock`.
-- Pinned SDK `@typesafe-ai/sdk@0.6.0`. Documented model `jev-latest` / `jev-1.13.0`. No live call was made in the agent environment.
-- Confirm is still required. The stub does not email, write a calendar, or call an external API.
+- Clipboard access is explicit. No background monitoring.
+- Pasted text is untrusted data. It cannot grant new permissions.
+- Routing does not send, schedule, or write anything outside this page.
+- Exact values (dates, URLs, emails) are parsed in code, separate from “what kind of text is this?”
+- Provider keys stay server-side. Never commit them. Never log `TYPESAFE_API_KEY`.
 
-## Repository map
+## More detail
 
-- [MVP and acceptance criteria](docs/MVP.md)
-- [Proposed architecture](docs/ARCHITECTURE.md)
+- [MVP and acceptance](docs/MVP.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [Evaluation plan](docs/EVALUATION.md)
-- [Synthetic acceptance examples](examples/cases.json)
+- [Synthetic examples](examples/cases.json)
 - [macOS Share / Services](macos/README.md)
-- [Implementation handoff](prompts/IMPLEMENT.md)
+- [Implementation notes](prompts/IMPLEMENT.md)
 - [Project constraints](AGENTS.md)
 - [External references](docs/SOURCES.md)
 
-## Checks
+## Local checks
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Parsers, contract, routing, failure paths, Jev adapter fixtures, URL/share ingest, Mac wrapper URL, UI smoke |
-| `python3 scripts/validate_scaffold.py` | Fixture structure, local documentation links, SDK stays server-side |
+| `npm test` | Parsers, routing, failure paths, Jev adapter fixtures, share ingest, UI smoke |
+| `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side |
 
-These checks do **not** measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.
+These checks do not measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.
 
-Out of scope: passive clipboard surveillance, autonomous browsing, automatic email sending, and a general-purpose shell.
+## Licence
 
-No GitHub Actions workflow, production deployment, or software licence has been configured. Do not treat the absence of a licence file as an open-source licence grant.
+No software licence has been published. Until one is, this repository is **all rights reserved**. Do not treat the absence of a `LICENSE` file as an open-source grant.

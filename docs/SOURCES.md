@@ -8,6 +8,6 @@ Checked/reference date: 2026-09-19.
 - [Models](https://docs.typesafe.ai/models) — default alias `jev-latest` currently points to `jev-1.13.0`.
 - [TypeSafe confidence reference](https://docs.typesafe.ai/confidence) — vendor definitions; this app does not use confidence as a policy gate.
 
-This agent environment did not make a live TypeSafe call (no `TYPESAFE_API_KEY`). Adapter tests use recorded/mocked HTTP fixtures. If you run the live E2E locally, record the response `model` field and the SDK version (`0.6.0`) with the measurement.
+Adapter tests use recorded/mocked HTTP fixtures, not a live TypeSafe call. If you run the live E2E locally, record the response `model` field and the SDK version (`0.6.0`) with the measurement. Never put a real `TYPESAFE_API_KEY` in this file.
 
 The product, architecture, milestones and fixtures in this repository are application designs. They do not claim measured Jev performance. Verify live API availability, current model identifiers, pricing, limits and data processing terms at integration time.
