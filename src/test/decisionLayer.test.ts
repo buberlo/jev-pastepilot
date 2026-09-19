@@ -1,5 +1,7 @@
 import {
+  applyAmbiguityOverride,
   applyConfidenceGate,
+  choiceMargin,
   combineParallelDecision,
   confidenceBand,
   DEFAULT_GATE_THRESHOLDS,
@@ -51,6 +53,11 @@ describe("confidence gates", () => {
     expect(readGateThresholds({ JEV_SUSPICIOUS_YES: "1.4" }).suspiciousYes).toBe(
       DEFAULT_GATE_THRESHOLDS.suspiciousYes,
     );
+    expect(readGateThresholds({ JEV_CHOICE_MARGIN: "0.25" }).choiceMargin).toBe(0.25);
+    expect(readGateThresholds({ JEV_CHOICE_MARGIN: "1.4" }).choiceMargin).toBe(
+      DEFAULT_GATE_THRESHOLDS.choiceMargin,
+    );
+    expect(readGateThresholds({ JEV_CHOICE_MARGIN: "0" }).choiceMargin).toBe(0);
   });
 });
 
@@ -79,6 +86,30 @@ describe("parallel answer combining", () => {
     ).toEqual({ status: "abstain", actionId: null });
   });
 
+  it("clarifies a high-confidence Choice when the paste is locally ambiguous", () => {
+    expect(
+      combineParallelDecision({
+        actionStatus: "select",
+        actionId: "capture_task",
+        confidence: 0.82,
+        signals: { suspicious: 0.04, unclear: 0.22, fit: 1.72, ambiguous: true },
+      }),
+    ).toEqual({ status: "clarify", actionId: null });
+  });
+
+  it("lets an unclear Noul win over a high Choice confidence", () => {
+    expect(
+      combineParallelDecision({
+        ...select,
+        confidence: 0.82,
+        signals: { suspicious: 0.05, unclear: 0.82, fit: 1.8 },
+      }),
+    ).toEqual({ status: "clarify", actionId: null });
+    expect(applyAmbiguityOverride("select", { unclear: 0.7 })).toBe("clarify");
+    expect(applyAmbiguityOverride("select", { unclear: 0.69 })).toBe("select");
+    expect(applyAmbiguityOverride("abstain", { unclear: 0.99, ambiguous: true })).toBe("abstain");
+  });
+
   it("clarifies when the unclear Noul is high or fit is only weak", () => {
     expect(
       combineParallelDecision({
@@ -92,6 +123,34 @@ describe("parallel answer combining", () => {
         signals: { suspicious: 0.05, unclear: 0.1, fit: 1.1 },
       }),
     ).toEqual({ status: "clarify", actionId: null });
+  });
+
+  it("clarifies when top Choice probability mass is flat", () => {
+    expect(choiceMargin({ capture_task: 0.48, capture_idea: 0.39, clarify: 0.13 })).toBeCloseTo(0.09);
+    expect(
+      combineParallelDecision({
+        actionStatus: "select",
+        actionId: "capture_task",
+        confidence: 0.82,
+        signals: {
+          suspicious: 0.04,
+          unclear: 0.22,
+          fit: 1.72,
+          choiceProbabilities: { capture_task: 0.48, capture_idea: 0.39, clarify: 0.13 },
+        },
+      }),
+    ).toEqual({ status: "clarify", actionId: null });
+    expect(
+      combineParallelDecision({
+        ...select,
+        signals: {
+          suspicious: 0.04,
+          unclear: 0.08,
+          fit: 1.82,
+          choiceProbabilities: { open_log_viewer: 0.88, abstain: 0.07, clarify: 0.05 },
+        },
+      }),
+    ).toEqual({ status: "select", actionId: "open_log_viewer" });
   });
 
   it("abstains when the fit Score is below the no-fit threshold", () => {
@@ -147,7 +206,7 @@ describe("parallel answer combining", () => {
         actionStatus: "select",
         actionId: "send_email",
         confidence: 0.2,
-        signals: { unclear: 0.9, fit: 0.1 },
+        signals: { unclear: 0.9, fit: 0.1, ambiguous: true },
         selectOffered: false,
       }),
     ).toEqual({ status: "select", actionId: "send_email" });
@@ -163,6 +222,24 @@ describe("parallel answer combining", () => {
         selectOffered: false,
       }),
     ).toEqual({ status: "abstain", actionId: null });
+  });
+
+  it("disables the Choice-margin gate when the threshold is 0", () => {
+    const thresholds = readGateThresholds({ JEV_CHOICE_MARGIN: "0" });
+    expect(
+      combineParallelDecision({
+        actionStatus: "select",
+        actionId: "capture_task",
+        confidence: 0.82,
+        signals: {
+          suspicious: 0.04,
+          unclear: 0.22,
+          fit: 1.72,
+          choiceProbabilities: { capture_task: 0.48, capture_idea: 0.39, clarify: 0.13 },
+        },
+        thresholds,
+      }),
+    ).toEqual({ status: "select", actionId: "capture_task" });
   });
 
   it("treats missing extra answers as unused signals", () => {

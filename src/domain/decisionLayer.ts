@@ -9,12 +9,17 @@ export type GateThresholds = {
   confidenceLow: number;
   /** Noul at or above this treats the paste as injection/suspicious. */
   suspiciousYes: number;
-  /** Noul at or above this treats a select as too vague (clarify). */
+  /** Noul at or above this forces clarify, even when Choice confidence is high. */
   unclearYes: number;
   /** Score at or above this is a clear single-action fit. */
   fitClear: number;
   /** Score below this is no fit (abstain). Between this and fitClear → clarify. */
   fitNone: number;
+  /**
+   * Top-minus-second Choice probability below this prefers clarify.
+   * Set 0 to disable. Local policy, not a vendor accuracy claim.
+   */
+  choiceMargin: number;
 };
 
 /** Conservative defaults. Not a vendor accuracy claim. Override with JEV_* env. */
@@ -25,6 +30,7 @@ export const DEFAULT_GATE_THRESHOLDS: GateThresholds = {
   unclearYes: 0.7,
   fitClear: 1.5,
   fitNone: 0.75,
+  choiceMargin: 0.15,
 };
 
 export type ConfidenceBand = "high" | "mid" | "low" | "unknown";
@@ -33,6 +39,10 @@ export type ParallelSignals = {
   suspicious?: number;
   unclear?: number;
   fit?: number;
+  /** Local ambiguous paste (or equivalent). Forces clarify on a select. */
+  ambiguous?: boolean;
+  /** Choice option probabilities. Used only for a weak-margin downgrade. */
+  choiceProbabilities?: Record<string, number>;
 };
 
 function readNumber(raw: string | undefined, fallback: number, min: number, max: number): number {
@@ -61,6 +71,7 @@ export function readGateThresholds(env: EnvMap = {}): GateThresholds {
     unclearYes: readNumber(env.JEV_UNCLEAR_YES, DEFAULT_GATE_THRESHOLDS.unclearYes, 0, 1),
     fitClear: readNumber(env.JEV_FIT_CLEAR, DEFAULT_GATE_THRESHOLDS.fitClear, 0, 2),
     fitNone: readNumber(env.JEV_FIT_NONE, DEFAULT_GATE_THRESHOLDS.fitNone, 0, 2),
+    choiceMargin: readNumber(env.JEV_CHOICE_MARGIN, DEFAULT_GATE_THRESHOLDS.choiceMargin, 0, 1),
   };
 }
 
@@ -81,9 +92,27 @@ export function confidenceBand(
 }
 
 /**
+ * Gap between the top two Choice probabilities.
+ * Undefined when fewer than two finite options are present.
+ */
+export function choiceMargin(probabilities?: Record<string, number>): number | undefined {
+  if (!probabilities) {
+    return undefined;
+  }
+  const ranked = Object.values(probabilities)
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => b - a);
+  if (ranked.length < 2) {
+    return undefined;
+  }
+  return ranked[0] - ranked[1];
+}
+
+/**
  * Confidence is a routing hint, not proof of correctness.
  * Never upgrades: high keeps select, mid prefers clarify, low abstains.
  * Missing confidence on a select is treated as mid (safer fallback).
+ * Ambiguity override may still downgrade a high-confidence select afterward.
  */
 export function applyConfidenceGate(
   status: DecisionStatus,
@@ -109,6 +138,31 @@ export function applyConfidenceGate(
   return "clarify";
 }
 
+/**
+ * Unclear / ambiguous / flat Choice mass wins over raw Choice confidence.
+ * Never upgrades: only downgrades a select to clarify.
+ */
+export function applyAmbiguityOverride(
+  status: DecisionStatus,
+  signals: ParallelSignals = {},
+  thresholds: GateThresholds = DEFAULT_GATE_THRESHOLDS,
+): DecisionStatus {
+  if (status !== "select") {
+    return status;
+  }
+  if (signals.ambiguous) {
+    return "clarify";
+  }
+  if (signals.unclear !== undefined && signals.unclear >= thresholds.unclearYes) {
+    return "clarify";
+  }
+  const margin = choiceMargin(signals.choiceProbabilities);
+  if (margin !== undefined && thresholds.choiceMargin > 0 && margin < thresholds.choiceMargin) {
+    return "clarify";
+  }
+  return status;
+}
+
 export type CombinedDecision = {
   status: DecisionStatus;
   actionId: string | null;
@@ -116,7 +170,7 @@ export type CombinedDecision = {
 
 /**
  * Combine independent System One answers in code.
- * Choice picks the tool; Noul/Score can only downgrade. Never invents an action.
+ * Choice picks the tool; Noul/Score/local ambiguity can only downgrade. Never invents an action.
  */
 export function combineParallelDecision(args: {
   actionStatus: DecisionStatus;
@@ -145,10 +199,9 @@ export function combineParallelDecision(args: {
         status = "clarify";
       }
     }
-    if (status === "select" && signals.unclear !== undefined && signals.unclear >= thresholds.unclearYes) {
-      status = "clarify";
-    }
     status = applyConfidenceGate(status, args.confidence, thresholds);
+    // Ambiguity wins after the confidence gate so a high Choice score cannot keep a vague select.
+    status = applyAmbiguityOverride(status, signals, thresholds);
   } else if (status === "clarify") {
     status = applyConfidenceGate(status, args.confidence, thresholds);
   }
