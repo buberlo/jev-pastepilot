@@ -3,7 +3,7 @@ import { firstAllowlistedUrl } from "./openUrl";
 import { parseFacts } from "./parsers";
 import { buildLocalSaveEntry } from "./saveLocal";
 import { collapsedText, dictionaryWord, firstFilePath } from "./signals";
-import type { MacActionFallback, ParsedFacts, ToolId } from "./types";
+import type { MacActionFallback, ParsedFacts } from "./types";
 
 export const MAC_ACTION_TOOLS = [
   "open_in_notes",

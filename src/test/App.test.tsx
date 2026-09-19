@@ -265,7 +265,7 @@ describe("paste panel smoke", () => {
     await user.click(screen.getByRole("button", { name: "Confirm" }));
     expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("/api/mac");
     expect(open).toHaveBeenCalled();
-    expect(String(open.mock.calls[0]?.[0])).toMatch(/wiktionary\.org/);
+    expect(open).toHaveBeenCalledWith(expect.stringMatching(/wiktionary\.org/), "_blank", "noopener,noreferrer");
   });
 
   it("still abstains on injection after the Mac catalogue expansion", async () => {
