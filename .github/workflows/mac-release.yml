@@ -42,7 +42,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build PastePilot.app
         run: ./macos/PastePilotService/build.sh
@@ -77,7 +77,7 @@ jobs:
           test -x "$tmp/PastePilot.app/Contents/MacOS/PastePilot"
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: PastePilot-mac
           path: PastePilot-mac.zip

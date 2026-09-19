@@ -27,7 +27,7 @@ describe("Mac release workflow", () => {
     expect(workflow).toContain("dry-run");
     expect(workflow).toContain("codesign --force --deep --sign -");
     expect(workflow).not.toMatch(/secrets\.TYPESAFE/);
-    expect(workflow).not.toMatch(/TYPESAFE_API_KEY\s*[:=]/);
+    expect(workflow).not.toMatch(/\$\{\{\s*secrets\./);
   });
 
   it("documents the download and Gatekeeper right-click open", async () => {
