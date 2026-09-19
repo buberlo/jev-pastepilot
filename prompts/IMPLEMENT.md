@@ -1,6 +1,8 @@
 # Implement the first playable/usable slice of PastePilot
 
-Work in this repository only. It currently contains specifications and a structural validator, not an application. Preserve its explicit project constraints.
+This file is the original Milestone 1 handoff. Current product status, Mac release CI, and constraints live in [README.md](../README.md), [docs/MVP.md](../docs/MVP.md), and [AGENTS.md](../AGENTS.md).
+
+Work in this repository only. Preserve its explicit project constraints.
 
 ## Deliverable
 
@@ -22,4 +24,4 @@ Required offline/failure behaviour: Show a neutral action catalogue and let the 
 
 Use the acceptance criteria in `docs/MVP.md`; add tests that execute the domain and UI behaviour rather than only inspecting fixtures. Include empty input, unavailable actions and stale state where relevant. Choose supported package versions from official documentation, commit a lockfile with the implemented app and document exact install/run/check commands. Do not create fake scripts that always pass or claim tests that were not run.
 
-Update the README to distinguish implemented features from remaining milestones. Do not deploy, add GitHub Actions or modify another repository. No commits or pushes beyond this repository are authorised by this handoff.
+Update the README to distinguish implemented features from remaining milestones. Do not deploy or modify another repository. GitHub Actions is allowed only for the Mac release workflow (see AGENTS.md). No commits or pushes beyond this repository are authorised by this handoff.

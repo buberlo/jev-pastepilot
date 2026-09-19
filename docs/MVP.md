@@ -11,7 +11,7 @@ Implemented behaviour:
 - Explicit paste only (Ctrl/Cmd+V and a Paste button). No native clipboard watcher.
 - Offline mock provider with no API key.
 - At most three action buttons, or a “nothing fitting” empty state with a manual fallback list.
-- Preview and a single Confirm before a local execution stub. Confirm never sends email, writes a calendar, or calls an external API.
+- Preview and a single Confirm. MS1 Confirm was a local stub. Later slices wire Open link and local save; see [Local Confirm adapters](#local-confirm-adapters). Confirm never sends email, writes a calendar, or calls an external API.
 
 ## Milestone 2 — Decision contract and failure paths
 
@@ -24,7 +24,7 @@ Implemented behaviour:
 - Adapter interface: `mock` | `local` | `jev`. The mock stays the default.
 - Deterministic fixtures for select, clarify, abstain, empty, injection, timeout, malformed output, quota, and stale `stateVersion`.
 - Provider failures leave the text editable and offer the manual safe-tool list. Those outcomes are operational, not semantic abstains.
-- The execution gate rechecks state immediately before the local stub. Confirm is still required.
+- The execution gate rechecks state immediately before Confirm runs. Confirm is still required.
 
 ## Share-slice — Mac Services / URL ingest
 
@@ -35,7 +35,7 @@ Implemented behaviour:
 - The Vite/React app accepts shared text via `?text=` / `?q=` and pre-fills the paste field, then auto-runs the same routing.
 - A local `POST /share` (form, JSON, or plain text) redirects to the same ingest URL. Share Target–style fields: `text`, `q`, or `url`.
 - Nothing auto-executes. Preview → Confirm is unchanged.
-- `macos/` ships a shell wrapper, an Automator/Services AppleScript, Shortcuts install steps, and optional Swift Service source. A signed production `.app` is not part of this slice; URL ingest proves the loop.
+- `macos/` ships a shell wrapper, an importable Quick Action, Shortcuts install steps, and SwiftUI Settings source. An **unsigned** CI `.app` is published on GitHub Releases (`mac-latest`). A notarized production `.app` is not part of this slice; URL ingest still proves the loop.
 - Clipboard is read only on explicit invoke (`--clipboard` or the current Services selection). No watcher.
 - Windows tray / Share is documented as later work and is not built.
 
@@ -63,7 +63,7 @@ Implemented behaviour:
 - `@typesafe-ai/sdk` is pinned at **0.6.0**. The adapter calls `TypeSafeClient.systemOne` with independent questions against the same paste state: a `choice()` for the allowlisted action, a `noul()` for injection/suspicion, a `noul()` for emptiness/clarity, and a `score()` for fit. Vendor types do not leak into the UI.
 - Answers are combined in **code**, not in one mega-prompt. Parallel signals can only downgrade a select (never invent or upgrade an action).
 - Confidence gates in code: high (≥ `JEV_CONFIDENCE_HIGH`, default 0.75) may keep a contract-valid select; mid prefers clarify / safer tools; low (< `JEV_CONFIDENCE_LOW`, default 0.45) abstains to the manual list. Unclear Noul (`JEV_UNCLEAR_YES`, default 0.7), a locally ambiguous paste, or a flat Choice margin (`JEV_CHOICE_MARGIN`, default 0.15) can still force clarify after a high Choice score. Injection and empty still abstain. Thresholds are constants, overridable via env, and covered by tests. Confidence is not proof of correctness — allowlisted IDs, `stateVersion`, and Confirm still apply. This is local policy on top of System One answers, not a vendor accuracy claim.
-- Credentials are read only from the server environment (`TYPESAFE_API_KEY`). The browser posts `DecisionRequest` to local `POST /api/decide`. The key is never committed and never logged. Paste contents are not logged by default.
+- Credentials are read only from the server environment (`TYPESAFE_API_KEY`). On a Mac, Settings (`⌘,`) can store that key in Keychain; `macos/run-dev-with-keychain.sh` loads it into the process. The browser posts `DecisionRequest` to local `POST /api/decide`. The key is never committed and never logged. Paste contents are not logged by default.
 - Fail-open: missing key, timeout, quota/rate-limit, or a malformed System One body leaves the text editable and shows the safe manual-tool list. The app does not crash and does not pretend a live success.
 - `local` remains the optional SemIf/offline heuristic. No 4B GPU is required. Default for demos without a key: `mock`.
 - Live accuracy is **not** claimed. Recorded HTTP fixtures cover adapter validation, parallel combining, and gates. A live E2E test exists and is skipped unless `TYPESAFE_API_KEY` is set locally (`src/test/jev.live.test.ts`).
@@ -80,12 +80,20 @@ Unwired catalogue tools (`draft_event`, `open_log_viewer`, `search_docs`) stay l
 
 Live accuracy is not claimed in this repository. Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Pin `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version; the alias can move. The response `model` field reports the versioned id. Measure routing on your own labelled set; do not substitute a vendor claim.
 
-### Remaining north-star (not MS3)
+## Mac Settings (Keychain)
 
-- A real signed / notarized Mac `.app` (CI now publishes an **ad-hoc / unsigned** `PastePilot-mac.zip` on GitHub Releases; Gatekeeper right-click → Open. The TypeSafe key stays in Keychain and is never in the zip. A Linux VM cannot notarize).
+**Done in this repository.** The SwiftUI Settings window (`PastePilot → Settings…`, `⌘,`) stores `TYPESAFE_API_KEY` in the macOS Keychain only (service `local.pastepilot.typesafe`). Model, provider, and server URL go to UserDefaults. The key is never on `/?text=`, never in git, never in the release zip, and never logged. `macos/run-dev-with-keychain.sh` loads the key into the local server process environment. The web app still uses `.env` or server env.
+
+## Unsigned Mac release CI
+
+**Done in this repository.** [`.github/workflows/mac-release.yml`](../.github/workflows/mac-release.yml) runs on `macos-latest` and publishes `PastePilot-mac.zip`. Every push to `main` replaces the rolling tag [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest). The build is ad-hoc / not notarized. First launch: Gatekeeper **right-click → Open**. The workflow does not read `TYPESAFE_API_KEY` and the zip must not contain a key assignment.
+
+### Remaining north-star
+
+- A notarized / Developer ID–signed Mac `.app` (the unsigned rolling zip is already published).
 - A Windows tray / Share target that opens the same `/?text=` URL.
 - More tool integrations, each with its own permission and confirmation flow.
-- Live TypeSafe measurement on a labelled set (not part of the Confirm-adapters slice).
+- Live TypeSafe measurement on a labelled set (not claimed in this repository).
 
 ## Acceptance criteria
 
@@ -101,4 +109,4 @@ Passive clipboard surveillance, autonomous browsing, automatic email sending and
 
 ## Delivery boundary
 
-Milestones 1–3, the Share-slice, and the local Confirm adapters are implemented and can be reproduced with the README commands. Remaining north-star surfaces are not part of this milestone.
+Milestones 1–3, the Share-slice, local Confirm adapters, Mac Settings, and unsigned release CI are implemented and can be reproduced with the README commands. Remaining north-star surfaces (notarization, Windows, more tools) are not part of this milestone.
