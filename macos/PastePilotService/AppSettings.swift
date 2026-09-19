@@ -4,9 +4,16 @@ import Foundation
 enum AppSettings {
     static let suiteName = "local.pastepilot.settings"
     static let defaultServerURL = "http://localhost:5173"
+    static let bundledPort = 18763
     static let defaultModel = "jev-latest"
     static let defaultProvider = "mock"
     static let providers = ["mock", "local", "jev"]
+
+    static var dataDirectory: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return base.appendingPathComponent("PastePilot", isDirectory: true)
+    }
 
     private static var defaults: UserDefaults {
         UserDefaults(suiteName: suiteName) ?? .standard
@@ -43,4 +50,8 @@ enum AppSettings {
             defaults.set(newValue.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "model")
         }
     }
+}
+
+extension Notification.Name {
+    static let pastePilotSettingsDidChange = Notification.Name("local.pastepilot.settingsDidChange")
 }

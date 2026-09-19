@@ -46,6 +46,8 @@ python3 scripts/validate_scaffold.py
 
 ## Download for Mac
 
+**Mac v1 is a complete PastePilot app.** The main window is the paste UI (WKWebView). A bundled local Node server starts with the app and stops on quit. You do **not** need Terminal or `npm run dev` for normal use.
+
 Every push to `main` rebuilds the rolling release [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest).
 
 - **Release page:** <https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest>
@@ -54,10 +56,12 @@ Every push to `main` rebuilds the rolling release [`mac-latest`](https://github.
 The zip is **ad-hoc / unsigned** (not Developer ID, not notarized). After unzipping:
 
 1. Move `PastePilot.app` to `/Applications` (or `~/Applications`).
-2. **Right-click → Open** the first time so Gatekeeper lets it run.
-3. Save an API key in **PastePilot → Settings…** if you want live Jev. The zip never contains `TYPESAFE_API_KEY`.
+2. **Right-click → Open** (right-click, not a regular double-click) the first time so Gatekeeper lets it run.
+3. Paste in the app window. At most three actions. Preview → **Confirm**.
+4. Optional: save an API key in **PastePilot → Settings…** (`⌘,`) for live Jev. The key stays in Keychain and is injected into the bundled server environment. The zip never contains `TYPESAFE_API_KEY`.
+5. Select text → **Services → Send to PastePilot**. The **app window** opens with `/?text=` — not Chrome.
 
-Optional `v*` tags publish a versioned copy of the same zip. [All releases](https://github.com/buberlo/jev-pastepilot/releases). Install and Share steps: [macos/README.md](macos/README.md).
+Optional `v*` tags publish a versioned copy of the same zip. [All releases](https://github.com/buberlo/jev-pastepilot/releases). Details: [macos/README.md](macos/README.md).
 
 ## Settings / API key
 
@@ -68,9 +72,7 @@ Optional `v*` tags publish a versioned copy of the same zip. [All releases](http
 
 Never commit a real key. Never log it. Never put it on `/?text=`.
 
-On a Mac, start the local server with [`macos/run-dev-with-keychain.sh`](macos/run-dev-with-keychain.sh) so the Keychain key is injected into the process environment only. The browser never sees it.
-
-Web-only: copy [`.env.example`](.env.example) to a gitignored `.env`.
+The Mac app injects the Keychain key into its bundled server. Web developers can still use [`macos/run-dev-with-keychain.sh`](macos/run-dev-with-keychain.sh) or copy [`.env.example`](.env.example) to a gitignored `.env`. The browser never sees the key.
 
 ## Confirm tools
 
@@ -88,8 +90,8 @@ Confirm never sends email, writes a calendar, or calls an external API. Opening 
 
 Default routing is the offline mock. Live TypeSafe Jev is optional.
 
-1. Put the key in Mac Settings, or copy [`.env.example`](.env.example) to `.env`.
-2. Open `http://localhost:5173/?provider=jev`, or start with `DECISION_PROVIDER=jev`.
+1. Put the key in Mac Settings (the app restarts its bundled server), or copy [`.env.example`](.env.example) to `.env` for `npm run dev`.
+2. In the Mac app, set Provider to **jev**. For the web prototype, open `http://localhost:5173/?provider=jev`, or start with `DECISION_PROVIDER=jev`.
 
 The browser posts a routing request to local `POST /api/decide`. Selecting Jev sends the pasted text to TypeSafe for **routing only**.
 
@@ -112,9 +114,11 @@ Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test`. Demo flags wi
 
 ## Share from a Mac
 
-Keep the web app running, then select text → **Services → Send to PastePilot**. The browser opens `/?text=` with the field filled. Confirm is still required.
+Open `PastePilot.app`, then select text → **Services → Send to PastePilot**. The app window loads `/?text=` with the field filled. Confirm is still required. There is no clipboard watcher.
 
-**Double-click** `macos/install.command`, or use the Release `.app`. `--clipboard` on the helper is an explicit flag — no watcher.
+**Double-click** `macos/install.command` if you want the standalone Quick Action (`pastepilot://ingest`). The Release `.app` also registers **Send to PastePilot** as a Service.
+
+`--clipboard` on the helper script is an explicit flag.
 
 Windows share / tray is not built yet.
 
@@ -130,8 +134,9 @@ Details: [macos/README.md](macos/README.md).
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
 | **Confirm tools** — open allowlisted http(s); save idea/task/note locally | Done |
 | **Mac Settings** — SwiftUI Settings + Keychain (`⌘,`) | Done |
+| **Mac v1** — in-app UI (WKWebView) + bundled local server + Services → app window | Done (ad-hoc, not notarized) |
 | **Release CI** — every `main` push rebuilds unsigned [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) | Done |
-| **Next** — notarized Mac `.app`, Windows share / tray, more tools | North-star |
+| **Next** — notarized / Developer ID Mac `.app`, Windows share / tray, more tools | North-star |
 
 See [docs/MVP.md](docs/MVP.md).
 
@@ -160,7 +165,7 @@ See [docs/MVP.md](docs/MVP.md).
 | --- | --- |
 | `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, local save, UI smoke |
 | `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side, Mac workflow only |
-| GitHub Actions `Mac release` | Builds `macos/PastePilotService` on `macos-latest` and publishes `PastePilot-mac.zip` |
+| GitHub Actions `Mac release` | Bundles the Vite UI + Node server, builds `macos/PastePilotService` on `macos-latest`, publishes `PastePilot-mac.zip` |
 
 These checks do not measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.
 

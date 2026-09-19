@@ -16,7 +16,15 @@ describe("Mac release workflow", () => {
 
     expect(workflow).toContain("runs-on: macos-latest");
     expect(workflow).toContain("./macos/PastePilotService/build.sh");
+    expect(workflow).toContain("./macos/bundle-web.sh");
+    expect(workflow).toContain("./macos/PastePilotService/bundle-runtime.sh");
+    expect(workflow).toContain("npm ci");
     expect(buildScript).toContain("PastePilot.app");
+    expect(buildScript).toContain("Resources/web");
+    expect(buildScript).toContain("Resources/server/server.mjs");
+    expect(buildScript).toContain("Resources/runtime/node");
+    expect(workflow).toContain("Contents/Resources/web/index.html");
+    expect(workflow).toContain("Contents/Resources/runtime/node");
     expect(workflow).toContain("softprops/action-gh-release");
     expect(workflow).toContain("PastePilot-mac.zip");
     expect(workflow).toContain("mac-latest");
@@ -38,10 +46,13 @@ describe("Mac release workflow", () => {
     expect(rootReadme).toContain("mac-latest");
     expect(rootReadme).toContain("right-click");
     expect(rootReadme).toContain("not notarized");
+    expect(rootReadme).toContain("npm run dev");
     expect(macReadme).toContain("Download (GitHub Releases)");
     expect(macReadme).toContain("Right-click");
     expect(macReadme).toContain("Gatekeeper");
     expect(macReadme).toContain("Dry-run the workflow");
+    expect(macReadme).toContain("bundled");
+    expect(macReadme).toContain("WKWebView");
     expect(macReadme).not.toMatch(/TYPESAFE_API_KEY\s*=\s*['"](?!\$)[^'"]+/);
   });
 });

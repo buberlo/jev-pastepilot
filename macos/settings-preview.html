@@ -96,7 +96,7 @@
       <div class="body">
         <p class="banner">Layout preview of macos/PastePilotService/SettingsView.swift — this Linux VM cannot run the real Mac window. The API key is never stored here.</p>
         <h1>PastePilot Settings</h1>
-        <p class="lede">Store the TypeSafe key on this Mac. Share still only opens /?text= — Confirm is required.</p>
+        <p class="lede">Store the TypeSafe key on this Mac. The bundled local server reads it from Keychain on launch. Share opens the app window with /?text= — Confirm is required.</p>
         <fieldset>
           <legend>TypeSafe</legend>
           <label>API key <input type="password" value="••••••••" readonly autocomplete="off" /></label>
@@ -111,6 +111,7 @@
         <fieldset>
           <legend>PastePilot</legend>
           <label>Server URL <input value="http://localhost:5173" readonly /></label>
+          <p class="hint">Used by the CLI share helper. The app window always uses the bundled localhost server.</p>
         </fieldset>
         <div class="actions">
           <button type="button" class="save">Save</button>

@@ -1,19 +1,19 @@
 import SwiftUI
 
-/// Small Settings window. The API key uses a secure field and Keychain only.
+/// Settings window (⌘,). The API key uses a secure field and Keychain only.
 struct SettingsView: View {
     @State private var apiKey = ""
     @State private var keyStored = false
     @State private var model = AppSettings.model
     @State private var provider = AppSettings.provider
     @State private var serverURL = AppSettings.serverURL
-    @State private var status = "Nothing is sent until you Confirm in the web app."
+    @State private var status = "The main window is PastePilot. Confirm is required. The key is never put on a URL."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("PastePilot Settings")
                 .font(.title2.weight(.semibold))
-            Text("Store the TypeSafe key on this Mac. Share still only opens /?text= — Confirm is required.")
+            Text("Store the TypeSafe key on this Mac. The bundled local server reads it from Keychain on launch. Share opens the app window with /?text= — Confirm is required.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -53,6 +53,10 @@ struct SettingsView: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(minWidth: 240)
                     }
+                    Text("Used by the CLI share helper. The app window always uses the bundled localhost server.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(6)
             }
@@ -70,7 +74,7 @@ struct SettingsView: View {
                 .textSelection(.enabled)
         }
         .padding(20)
-        .frame(minWidth: 440, minHeight: 420)
+        .frame(minWidth: 440, minHeight: 460)
         .onAppear { keyStored = KeychainStore.hasAPIKey() }
     }
 
@@ -85,8 +89,10 @@ struct SettingsView: View {
             }
             keyStored = KeychainStore.hasAPIKey()
             status = "Saved. The key stays in Keychain (service \(KeychainStore.service)). It is not in git, the share URL, or logs."
+            NotificationCenter.default.post(name: .pastePilotSettingsDidChange, object: nil)
         } catch {
             status = "Could not write Keychain. Server URL and provider were still saved."
+            NotificationCenter.default.post(name: .pastePilotSettingsDidChange, object: nil)
         }
     }
 
@@ -96,6 +102,7 @@ struct SettingsView: View {
             apiKey = ""
             keyStored = false
             status = "Key removed from Keychain. Other settings are unchanged."
+            NotificationCenter.default.post(name: .pastePilotSettingsDidChange, object: nil)
         } catch {
             status = "Could not remove the Keychain item."
         }

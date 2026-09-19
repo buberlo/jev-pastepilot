@@ -15,9 +15,27 @@
   <key>CFBundleVersion</key>
   <string>1</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
+  <string>1.0.0</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
   <key>LSUIElement</key>
   <false/>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>local.pastepilot.ingest</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>pastepilot</string>
+      </array>
+    </dict>
+  </array>
   <key>NSServices</key>
   <array>
     <dict>
