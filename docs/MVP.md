@@ -4,7 +4,7 @@
 
 **Done in this repository.** The paste panel and six internal content kinds use deterministic mock routing and visible action previews. Domain tests and UI smoke tests cover the labelled cases in `examples/cases.json`. Local run commands are in the README.
 
-This is a mock. It is not a live Jev integration.
+MS1 is the offline mock. Live Jev is Milestone 3.
 
 Implemented behaviour:
 
@@ -35,11 +35,22 @@ Implemented behaviour:
 - The Vite/React app accepts shared text via `?text=` / `?q=` and pre-fills the paste field, then auto-runs the same routing.
 - A local `POST /share` (form, JSON, or plain text) redirects to the same ingest URL. Share Target–style fields: `text`, `q`, or `url`.
 - Nothing auto-executes. Preview → Confirm is unchanged.
-- `macos/` ships a shell wrapper, an Automator/Services AppleScript, Shortcuts install steps, and optional Swift Service source. A full `.app` cannot be built on the Linux cloud VM; the URL ingest proves the loop.
+- `macos/` ships a shell wrapper, an Automator/Services AppleScript, Shortcuts install steps, and optional Swift Service source. A signed production `.app` is not part of this slice; URL ingest proves the loop.
 - Clipboard is read only on explicit invoke (`--clipboard` or the current Services selection). No watcher.
 - Windows tray / Share is documented as later work and is not built.
 
 Install and run: [README](../README.md) and [macos/README.md](../macos/README.md).
+
+Useful local URLs (web paste stays one page; query flags only wrap the adapter):
+
+```
+http://localhost:5173/?text=Service%20failed%3A%20connection%20refused%20on%20the%20database%20socket.
+http://localhost:5173/?provider=local
+http://localhost:5173/?provider=jev
+http://localhost:5173/?scenario=timeout
+http://localhost:5173/?scenario=malformed
+http://localhost:5173/?scenario=quota
+```
 
 ## Milestone 3 — Live adapter and measured comparison
 
@@ -54,7 +65,7 @@ Implemented behaviour:
 - Live accuracy is **not** claimed. Recorded HTTP fixtures cover adapter validation. A live E2E test exists and is skipped unless `TYPESAFE_API_KEY` is set locally (`src/test/jev.live.test.ts`).
 - Confirm is still required. The stub still does not email, write a calendar, or call an external API. Pasted content remains untrusted data.
 
-This environment did **not** make a live TypeSafe call (no key present). Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Measure routing on your own labelled set; do not substitute a vendor claim.
+Live accuracy is not claimed in this repository. Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Measure routing on your own labelled set; do not substitute a vendor claim.
 
 ### Remaining north-star (not MS3)
 

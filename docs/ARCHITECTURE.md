@@ -2,7 +2,7 @@
 
 ## Domain
 
-Proposed: TypeScript React/Vite web app, explicit paste input, local parsers and a server-side decision adapter. Share / Mac Services is a thin explicit entry into the same web app (`?text=` / `?q=` or `POST /share`). It is not a clipboard watcher and does not change the decision contract.
+TypeScript React/Vite web app: explicit paste input, local parsers, and a server-side decision adapter. Share / Mac Services is a thin explicit entry into the same web app (`?text=` / `?q=` or `POST /share`). It is not a clipboard watcher and does not change the decision contract.
 
 Primary entities: `PasteEntry`, `ContentKind`, `ToolDefinition`, `ActionSuggestion`, `ActionPreview`.
 
