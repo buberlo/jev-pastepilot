@@ -20,6 +20,8 @@
   <string>13.0</string>
   <key>LSUIElement</key>
   <false/>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>PastePilot uses Automation only after Confirm, to create a Notes or Reminders draft. It never sends email or runs a pasted shell command.</string>
   <key>NSAppTransportSecurity</key>
   <dict>
     <key>NSAllowsLocalNetworking</key>

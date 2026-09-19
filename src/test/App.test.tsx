@@ -236,15 +236,50 @@ describe("paste panel smoke", () => {
     expect(await screen.findByRole("status")).toHaveTextContent(/Saved to/);
   });
 
+  it("offers Open in Finder for a path even when jev is selected without a key", async () => {
+    window.history.replaceState({}, "", "/?provider=jev");
+    render(<App />);
+    await pasteIntoField("/Users/konrad/");
+    const actions = await screen.findByLabelText("Suggested actions");
+    expect(within(actions).getAllByRole("button")).toHaveLength(3);
+    expect(within(actions).getByRole("button", { name: "Open in Finder" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Open in Terminal" })).toBeInTheDocument();
+    expect(screen.queryByText("Couldn't decide.")).not.toBeInTheDocument();
+  });
+
+  it("uses the native Mac Confirm bridge when the WKWebView handler is present", async () => {
+    const postMessage = vi.fn(async () => ({
+      ok: true,
+      used: "mac",
+      message: "Opened the path in Finder.",
+    }));
+    vi.stubGlobal("webkit", { messageHandlers: { macAction: { postMessage } } });
+    const fetchMock = mockSaveFetch();
+    render(<App />);
+    const user = await pasteIntoField("/Users/konrad/");
+    await user.click(await screen.findByRole("button", { name: "Open in Finder" }));
+    expect(postMessage).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolId: "reveal_in_finder",
+        path: "/Users/konrad/",
+      }),
+    );
+    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain("/api/mac");
+    expect(await screen.findByRole("status")).toHaveTextContent(/Opened the path in Finder/);
+  });
+
   it("offers Mac tools for a path and still requires Confirm", async () => {
     const fetchMock = mockSaveFetch();
     render(<App />);
     const user = await pasteIntoField("/Users/ada/Documents/notes.md");
     const actions = await screen.findByLabelText("Suggested actions");
     expect(within(actions).getAllByRole("button")).toHaveLength(3);
-    expect(within(actions).getByRole("button", { name: "Reveal in Finder" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Open in Finder" })).toBeInTheDocument();
     expect(within(actions).getByRole("button", { name: "Open in Terminal" })).toBeInTheDocument();
-    await user.click(within(actions).getByRole("button", { name: "Reveal in Finder" }));
+    await user.click(within(actions).getByRole("button", { name: "Open in Finder" }));
     expect(screen.getByLabelText("Action preview")).toHaveTextContent(/Finder/i);
     expect(fetchMock).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Confirm" }));

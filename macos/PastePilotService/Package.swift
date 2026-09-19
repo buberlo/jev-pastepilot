@@ -17,6 +17,7 @@ let package = Package(
                 "IngestStore.swift",
                 "KeychainStore.swift",
                 "LocalServer.swift",
+                "MacActions.swift",
                 "MainWebView.swift",
                 "PastePilotApp.swift",
                 "ServiceProvider.swift",

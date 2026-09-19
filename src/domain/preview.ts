@@ -2,7 +2,7 @@ import { isMacActionTool } from "./macActions";
 import { parseFacts } from "./parsers";
 import { isLocalSaveTool } from "./saveLocal";
 import { isSearchOpenTool } from "./searchLinks";
-import { collapsedText, firstGithubUrl } from "./signals";
+import { collapsedText, firstFilePath, firstGithubUrl } from "./signals";
 import { toolLabel } from "./tools";
 import type { ActionPreview, ToolId } from "./types";
 
@@ -41,6 +41,10 @@ export function buildPreview(
   }
   if (toolId === "run_shortcut") {
     facts.push("Uses the Shortcut name from Settings (PASTEPILOT_SHORTCUT_NAME). Never the API key.");
+  }
+  if (toolId === "reveal_in_finder" || toolId === "open_in_terminal") {
+    const path = firstFilePath(input);
+    facts.push(path ? `Path: ${path}` : "No pasted path — Confirm uses the local inbox folder.");
   }
   if (toolId === "open_in_terminal") {
     facts.push("Opens Terminal at a pasted path, or the app alone. The paste is never a shell command.");
@@ -103,7 +107,7 @@ function previewSummary(toolId: ToolId): string {
       return "Confirm will open Calendar with an .ics draft on Mac. Elsewhere it downloads the draft. Nothing is scheduled.";
     }
     if (toolId === "reveal_in_finder") {
-      return "Confirm will reveal a pasted path or the inbox folder in Finder. Finder is Mac-only.";
+      return "Confirm will open a pasted path in Finder on Mac. Finder is Mac-only.";
     }
     if (toolId === "open_in_safari" || toolId === "open_in_chrome") {
       return "Confirm will open the first http(s) link in that browser on Mac. Elsewhere the default browser is used.";

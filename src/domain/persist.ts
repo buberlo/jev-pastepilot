@@ -154,9 +154,60 @@ export type MacPersistResult = {
   reason?: "no_shortcut" | "mac_failed" | "not_mac";
 };
 
+type NativeMacHandler = {
+  postMessage: (payload: Record<string, unknown>) => unknown;
+};
+
 /**
- * Ask the local server to run a Mac Confirm action. On web/Linux the server
- * returns used=fallback. Never sends the API key. Never logs the paste.
+ * WKWebView bridge registered by the Mac app (`webkit.messageHandlers.macAction`).
+ * Missing in browsers and in tests unless stubbed.
+ */
+export function nativeMacBridge(): NativeMacHandler | null {
+  const webkit = (globalThis as {
+    webkit?: { messageHandlers?: { macAction?: NativeMacHandler } };
+  }).webkit;
+  const handler = webkit?.messageHandlers?.macAction;
+  if (!handler || typeof handler.postMessage !== "function") {
+    return null;
+  }
+  return handler;
+}
+
+function readMacReply(raw: unknown, toolId: MacActionToolId): MacPersistResult | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const body = raw as { ok?: boolean; used?: string; message?: string; error?: string };
+  if (body.error === "no_shortcut") {
+    return {
+      ok: false,
+      used: "fallback",
+      message: "No Shortcut name in Settings. Confirm was ignored.",
+      reason: "no_shortcut",
+    };
+  }
+  if (body.ok === false) {
+    return {
+      ok: false,
+      used: "fallback",
+      message: body.message ?? "That Mac action could not run. Confirm was ignored.",
+      reason: "mac_failed",
+    };
+  }
+  if (body.used === "mac" || body.used === "fallback") {
+    return {
+      ok: true,
+      used: body.used,
+      message: body.message ?? macActionMessage(toolId, body.used),
+    };
+  }
+  return null;
+}
+
+/**
+ * Prefer the Mac app's native Swift Confirm (WKWebView). Web/Linux and
+ * `npm run dev` on a Mac fall through to `POST /api/mac`. Never sends the
+ * API key. Never logs the paste.
  */
 export async function persistMacAction(args: {
   toolId: string;
@@ -169,26 +220,37 @@ export async function persistMacAction(args: {
   if (!isMacActionTool(args.toolId)) {
     return { ok: false, used: "fallback", message: "That tool is not a Mac action.", reason: "mac_failed" };
   }
+  const payload = {
+    toolId: args.toolId,
+    text: args.text,
+    url: args.url,
+    path: args.path,
+    query: args.query,
+    content: args.content,
+  };
+
+  const native = nativeMacBridge();
+  if (native) {
+    try {
+      const parsed = readMacReply(await Promise.resolve(native.postMessage(payload)), args.toolId);
+      if (parsed) {
+        return parsed;
+      }
+    } catch {
+      // Fall through to the local server. Do not log the pasted text.
+    }
+  }
+
   try {
     const response = await fetch("/api/mac", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        toolId: args.toolId,
-        text: args.text,
-        url: args.url,
-        path: args.path,
-        query: args.query,
-        content: args.content,
-      }),
+      body: JSON.stringify(payload),
     });
     const body = (await response.json()) as { used?: string; message?: string; error?: string };
-    if (response.ok && (body.used === "mac" || body.used === "fallback")) {
-      return {
-        ok: true,
-        used: body.used,
-        message: body.message ?? macActionMessage(args.toolId, body.used),
-      };
+    const parsed = readMacReply({ ...body, ok: response.ok }, args.toolId);
+    if (parsed) {
+      return parsed;
     }
     if (body.error === "no_shortcut") {
       return {
@@ -204,7 +266,7 @@ export async function persistMacAction(args: {
   return {
     ok: true,
     used: "fallback",
-    message: macActionMessage(args.toolId as MacActionToolId, "fallback"),
+    message: macActionMessage(args.toolId, "fallback"),
     reason: "not_mac",
   };
 }

@@ -14,8 +14,10 @@ export { logOperational } from "./log";
 export { isMacActionTool, MAC_ACTION_TOOLS } from "./macActions";
 export { allowlistedHttpUrl, firstAllowlistedUrl } from "./openUrl";
 export { parseFacts } from "./parsers";
+export { applyPathSteal, shouldStealPath } from "./pathSteal";
 export {
   copyConfirmedText,
+  nativeMacBridge,
   openConfirmedUrl,
   persistDownload,
   persistLocalSave,

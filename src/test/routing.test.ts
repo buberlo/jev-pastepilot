@@ -159,10 +159,11 @@ describe("content routing", () => {
     expect(outcome.suggestions.every((item) => ALLOWLIST.has(item.toolId))).toBe(true);
   });
 
-  it("routes a Unix path to Reveal in Finder", async () => {
+  it("routes a Unix path to Open in Finder", async () => {
     const outcome = await routePaste("/Users/ada/Documents/notes.md");
     expect(outcome.status).toBe("select");
     expect(outcome.primaryActionId).toBe("reveal_in_finder");
+    expect(outcome.suggestions[0]?.label).toBe("Open in Finder");
     expect(outcome.suggestions.map((item) => item.toolId)).toEqual([
       "reveal_in_finder",
       "open_in_terminal",

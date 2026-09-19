@@ -257,6 +257,51 @@
       "notes": "A pasted Unix path surfaces Finder/Terminal. Confirm still required."
     },
     {
+      "id": "mac-path-users",
+      "input": "/Users/konrad/",
+      "state": {},
+      "available_actions": [
+        "reveal_in_finder",
+        "open_in_terminal",
+        "save_note"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "reveal_in_finder"
+      },
+      "notes": "A home-directory path must offer Open in Finder even for live Jev (steal)."
+    },
+    {
+      "id": "mac-path-tilde",
+      "input": "~/Desktop",
+      "state": {},
+      "available_actions": [
+        "reveal_in_finder",
+        "open_in_terminal",
+        "save_note"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "reveal_in_finder"
+      },
+      "notes": "A ~ path is a strong Finder signal."
+    },
+    {
+      "id": "mac-path-windows",
+      "input": "C:\\Users\\konrad\\Documents",
+      "state": {},
+      "available_actions": [
+        "reveal_in_finder",
+        "open_in_terminal",
+        "save_note"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "reveal_in_finder"
+      },
+      "notes": "Windows-style absolute paths are treated as paths."
+    },
+    {
       "id": "mac-word",
       "input": "serendipity",
       "state": {},

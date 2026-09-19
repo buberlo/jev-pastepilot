@@ -84,6 +84,15 @@ export async function executeMacAction(
   const settings = readMacSettings(options.env ?? process.env);
   const text = (input.text ?? "").trim().slice(0, MAX_TEXT);
 
+  // Bundled Mac app sets this so Confirm side-effects stay in Swift, not osascript.
+  if ((options.env ?? process.env).PASTEPILOT_NATIVE_MAC === "1") {
+    return {
+      ok: true,
+      used: "fallback",
+      message: macActionMessage(toolId, "fallback"),
+    };
+  }
+
   if (runner.platform !== "darwin") {
     return {
       ok: true,

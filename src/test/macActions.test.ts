@@ -13,6 +13,7 @@ import {
 import { buildPreview } from "../domain/preview";
 import { screenPaste } from "../domain/screenPaste";
 import { looksLikeDictionaryWord, looksLikeFilePath } from "../domain/signals";
+import { nativeMacBridge, persistMacAction } from "../domain/persist";
 import { executeMacAction, runMacAction, type MacCommandRunner } from "../server/macAction";
 
 function confirm(toolId: Parameters<typeof buildPreview>[0], input: string) {
@@ -58,6 +59,7 @@ function mockRunner(platform: NodeJS.Platform = "darwin"): MacCommandRunner & {
 
 describe("Mac signals and payloads", () => {
   it("detects paths and dictionary words without treating URLs as paths", () => {
+    expect(looksLikeFilePath("/Users/konrad/")).toBe(true);
     expect(looksLikeFilePath("/Users/ada/Documents/notes.md")).toBe(true);
     expect(looksLikeFilePath("https://example.com/docs")).toBe(false);
     expect(looksLikeFilePath("rm -rf /")).toBe(false);
@@ -171,6 +173,40 @@ describe("Mac runner (osascript mocked)", () => {
     const runner = mockRunner("darwin");
     await executeMacAction("open_in_terminal", { path: "/Users/ada/Documents" }, { runner });
     expect(runner.opens).toEqual([["-a", "Terminal", "/Users/ada/Documents"]]);
+  });
+
+  it("does not run osascript when the Mac app marks Confirm as native Swift", async () => {
+    const runner = mockRunner("darwin");
+    const result = await executeMacAction(
+      "reveal_in_finder",
+      { path: "/Users/konrad/" },
+      { runner, env: { PASTEPILOT_NATIVE_MAC: "1" } },
+    );
+    expect(result).toMatchObject({ ok: true, used: "fallback" });
+    expect(runner.opens).toEqual([]);
+    expect(runner.scripts).toEqual([]);
+  });
+
+  it("prefers the WKWebView native bridge over POST /api/mac", async () => {
+    const postMessage = vi.fn(async () => ({
+      ok: true,
+      used: "mac",
+      message: "Opened the path in Finder.",
+    }));
+    vi.stubGlobal("webkit", { messageHandlers: { macAction: { postMessage } } });
+    expect(nativeMacBridge()).not.toBeNull();
+    const result = await persistMacAction({
+      toolId: "reveal_in_finder",
+      text: "/Users/konrad/",
+      path: "/Users/konrad/",
+    });
+    expect(result).toEqual({
+      ok: true,
+      used: "mac",
+      message: "Opened the path in Finder.",
+    });
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
   });
 
   it("handles /api/mac without logging secrets", async () => {

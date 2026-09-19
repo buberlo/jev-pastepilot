@@ -36,6 +36,7 @@ swiftc -O -parse-as-library \
   "${ROOT}/IngestStore.swift" \
   "${ROOT}/KeychainStore.swift" \
   "${ROOT}/LocalServer.swift" \
+  "${ROOT}/MacActions.swift" \
   "${ROOT}/MainWebView.swift" \
   "${ROOT}/PastePilotApp.swift" \
   "${ROOT}/ServiceProvider.swift" \
