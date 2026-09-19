@@ -261,7 +261,12 @@ describe("paste panel smoke", () => {
     expect(postMessage).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
     expect(postMessage).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(postMessage.mock.calls[0]?.[0])).toContain("/Users/konrad/");
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolId: "reveal_in_finder",
+        path: "/Users/konrad/",
+      }),
+    );
     expect(JSON.stringify(fetchMock.mock.calls)).not.toContain("/api/mac");
     expect(await screen.findByRole("status")).toHaveTextContent(/Opened the path in Finder/);
   });
