@@ -60,8 +60,50 @@ function shareTargetPlugin() {
   };
 }
 
+function decidePlugin() {
+  const attach = (server: ViteDevServer | PreviewServer) => {
+    server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+      const pathOnly = (req.url ?? "/").split("?")[0];
+      if (pathOnly !== "/api/decide") {
+        next();
+        return;
+      }
+      if ((req.method ?? "GET") !== "POST") {
+        res.statusCode = 405;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "method_not_allowed" }));
+        return;
+      }
+
+      void readBody(req)
+        .then(async (body) => {
+          const { runDecide } = await import("./src/server/decide.ts");
+          const result = await runDecide(body);
+          res.statusCode = result.status;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(result.body));
+        })
+        .catch(next);
+    });
+  };
+
+  return {
+    name: "pastepilot-decide",
+    configureServer: attach,
+    configurePreviewServer: attach,
+  };
+}
+
+function pastepilotProvider(): string {
+  const raw = process.env.DECISION_PROVIDER ?? process.env.PASTEPILOT_PROVIDER ?? "mock";
+  return raw.trim() || "mock";
+}
+
 export default defineConfig({
-  plugins: [react(), shareTargetPlugin()],
+  define: {
+    __PASTEPILOT_PROVIDER__: JSON.stringify(pastepilotProvider()),
+  },
+  plugins: [react(), shareTargetPlugin(), decidePlugin()],
   test: {
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",

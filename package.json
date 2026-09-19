@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@typesafe-ai/sdk": "0.6.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

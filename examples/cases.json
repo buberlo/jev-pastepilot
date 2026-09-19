@@ -119,6 +119,22 @@
       "notes": "Malformed provider payload. Not a semantic decision."
     },
     {
+      "id": "quota",
+      "input": "Service failed: connection refused on the database socket.",
+      "state": {},
+      "scenario": "quota",
+      "available_actions": [
+        "open_log_viewer",
+        "capture_task"
+      ],
+      "expected": {
+        "status": "failed",
+        "action_id": null,
+        "failure": "quota"
+      },
+      "notes": "Operational quota / rate-limit. Not a semantic abstain."
+    },
+    {
       "id": "stale",
       "input": "Lass uns morgen über das Projekt sprechen.",
       "state": {},

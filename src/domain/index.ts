@@ -7,6 +7,8 @@ export { buildPreview } from "./preview";
 export {
   createProvider,
   wrapProvider,
+  ProviderNotConfiguredError,
+  ProviderQuotaError,
   type DecisionProvider,
   type DecisionScenario,
 } from "./providers";

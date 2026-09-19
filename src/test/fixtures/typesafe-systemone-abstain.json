@@ -1,0 +1,22 @@
+{
+  "comment": "Recorded official choice shape for abstain. Not a live response.",
+  "response": {
+    "model": "jev-1.13.0",
+    "answers": {
+      "action": {
+        "type": "choice",
+        "choice": "abstain",
+        "probabilities": {
+          "capture_idea": 0.12,
+          "abstain": 0.8,
+          "clarify": 0.08
+        },
+        "confidence": 0.74
+      }
+    },
+    "usage": {
+      "input_tokens": 90,
+      "output_tokens": 8
+    }
+  }
+}

@@ -35,9 +35,18 @@ def validate() -> int:
         if expected['status'] == 'failed' and not expected.get('failure'):
             errors.append(f'{cid}: failed cases must name an operational failure')
         scenario = item.get('scenario')
-        if scenario is not None and scenario not in {'timeout', 'malformed', 'stale', 'unknown_action', 'select_without_id'}:
+        if scenario is not None and scenario not in {'timeout', 'malformed', 'stale', 'unknown_action', 'select_without_id', 'quota'}:
             errors.append(f'{cid}: unknown scenario')
     skip_parts = {'.git', 'node_modules', 'dist', 'coverage'}
+    sdk_skip = skip_parts | {'server', 'test'}
+    for page in (ROOT / 'src').rglob('*'):
+        if not page.is_file() or page.suffix not in {'.ts', '.tsx'}:
+            continue
+        if sdk_skip.intersection(page.parts):
+            continue
+        text = page.read_text(encoding='utf-8')
+        if '@typesafe-ai/sdk' in text:
+            errors.append(f'{page.relative_to(ROOT)}: TypeSafe SDK must stay server-side')
     for page in ROOT.rglob('*.md'):
         if skip_parts.intersection(page.parts):
             continue

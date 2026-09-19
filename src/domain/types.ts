@@ -67,7 +67,8 @@ export type OperationalFailure =
   | "malformed"
   | "stale"
   | "invalid_contract"
-  | "not_configured";
+  | "not_configured"
+  | "quota";
 
 export type RouteStatus = DecisionStatus | "failed";
 
@@ -102,3 +103,6 @@ export type ExecutionResult = {
 export const MAX_SUGGESTIONS = 3;
 
 export const PROVIDER_TIMEOUT_MS = 800;
+
+/** Bounded live-provider budget. Mock/local stay on PROVIDER_TIMEOUT_MS. */
+export const JEV_TIMEOUT_MS = 5000;
