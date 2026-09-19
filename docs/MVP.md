@@ -28,15 +28,32 @@ Implemented behaviour:
 
 This is still not a live Jev integration.
 
+## Share-slice — Mac Services / URL ingest
+
+**Done in this repository.** A thin Share path into the MS2 web app. The decision engine is not rebuilt. Web paste stays the prototype core.
+
+Implemented behaviour:
+
+- The Vite/React app accepts shared text via `?text=` / `?q=` and pre-fills the paste field, then auto-runs the same mock routing.
+- A local `POST /share` (form, JSON, or plain text) redirects to the same ingest URL. Share Target–style fields: `text`, `q`, or `url`.
+- Nothing auto-executes. Preview → Confirm is unchanged.
+- `macos/` ships a shell wrapper, an Automator/Services AppleScript, Shortcuts install steps, and optional Swift Service source. A full `.app` cannot be built on the Linux cloud VM; the URL ingest proves the loop.
+- Clipboard is read only on explicit invoke (`--clipboard` or the current Services selection). No watcher.
+- Windows tray / Share is documented as later work and is not built.
+
+Install and run: [README](../README.md) and [macos/README.md](../macos/README.md).
+
 ## Milestone 3 — Live adapter and measured comparison
 
-Integrate Jev and evaluate routing. Add individual external integrations only when their permission and confirmation flows exist.
+**Not started.** Integrate Jev and evaluate routing. Add individual external integrations only when their permission and confirmation flows exist.
 
 Record the tested SDK/model version and configuration. Keep the local provider selectable. Report measured accuracy, abstention behaviour, latency and request volume separately; do not substitute a vendor claim for a measurement.
 
+The Share-slice does not include a live provider.
+
 ## Acceptance criteria
 
-- Pasting alone never executes a tool or transmits data to an unrelated service.
+- Pasting or sharing alone never executes a tool or transmits data to an unrelated service.
 - Date, URL and parameter values come from parsers or explicit confirmation.
 - Commands embedded in pasted content cannot expand permissions.
 - Provider errors leave the text editable and allow manual tool selection.
@@ -48,4 +65,4 @@ Passive clipboard surveillance, autonomous browsing, automatic email sending and
 
 ## Delivery boundary
 
-Milestones 1 and 2 are implemented and can be reproduced with the README commands. Milestone 3 remains future work until its behaviour can be reproduced locally and recorded in the README.
+Milestones 1 and 2 and the Share-slice are implemented and can be reproduced with the README commands. Milestone 3 remains future work until its behaviour can be reproduced locally and recorded in the README.

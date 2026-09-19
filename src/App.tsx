@@ -1,10 +1,11 @@
-import { useRef, useState, type ClipboardEvent } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent } from "react";
 import "./App.css";
 import {
   buildPreview,
   confirmExecution,
   newStateVersion,
   readDemoOptions,
+  readSharedText,
   routePaste,
   type ActionPreview,
   type ActionSuggestion,
@@ -13,9 +14,15 @@ import {
 } from "./domain";
 
 const PASTE_HINT = "⌘V or Ctrl+V, or use Paste. Nothing runs until you confirm.";
+const SHARE_HINT = "Opened from Share. Nothing runs until you confirm.";
+
+function sharedTextOnLoad(): string | null {
+  return readSharedText(window.location.search);
+}
 
 export default function App() {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(() => sharedTextOnLoad() ?? "");
+  const [fromShare, setFromShare] = useState(() => sharedTextOnLoad() !== null);
   const [stateVersion, setStateVersion] = useState(() => newStateVersion());
   const [outcome, setOutcome] = useState<RouteOutcome | null>(null);
   const [preview, setPreview] = useState<ActionPreview | null>(null);
@@ -43,9 +50,20 @@ export default function App() {
     setOutcome(routed);
   }
 
+  useEffect(() => {
+    const shared = sharedTextOnLoad();
+    if (!shared) {
+      return;
+    }
+    void routeAndApply(shared, stateVersion);
+    // Share ingest runs once on load. Later edits go through handleTextChange.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleTextChange(next: string) {
     const version = newStateVersion();
     setText(next);
+    setFromShare(false);
     setStateVersion(version);
     setPreview(null);
     setResult(null);
@@ -129,7 +147,7 @@ export default function App() {
           onPaste={handlePaste}
         />
         <div className="paste-toolbar">
-          <p className="hint">{pasteError ?? PASTE_HINT}</p>
+          <p className="hint">{pasteError ?? (fromShare ? SHARE_HINT : PASTE_HINT)}</p>
           <button type="button" className="paste-button" onClick={() => void handlePasteButton()}>
             Paste
           </button>
