@@ -118,8 +118,13 @@ struct PastePilotWebView: NSViewRepresentable {
         }
 
         private func isExternalConfirmURL(_ url: URL) -> Bool {
-            let scheme = url.scheme?.lowercased()
-            return scheme == "http" || scheme == "https" || scheme == "mailto"
+            let scheme = url.scheme?.lowercased() ?? ""
+            let allowed = [
+                "http", "https", "mailto",
+                "dict", "notes", "mobilenotes", "shortcuts",
+                "x-apple-reminder", "x-apple-reminderkit", "ical",
+            ]
+            return allowed.contains(scheme)
         }
 
         private func isBundledOrigin(_ url: URL) -> Bool {

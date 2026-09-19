@@ -38,6 +38,19 @@ export const TOOL_IDS = [
   "save_quote",
   "save_link",
   "create_checklist",
+  "open_in_notes",
+  "add_reminder",
+  "open_in_calendar",
+  "reveal_in_finder",
+  "open_in_safari",
+  "open_in_chrome",
+  "dictionary_lookup",
+  "spotlight_search",
+  "open_in_terminal",
+  "run_shortcut",
+  "speak_text",
+  "share_text",
+  "screen_paste",
 ] as const;
 
 export type ToolId = (typeof TOOL_IDS)[number];
@@ -123,10 +136,23 @@ export type ExecutionReason =
   | "no_query"
   | "invalid_json"
   | "copy_failed"
-  | "download_failed";
+  | "download_failed"
+  | "no_shortcut"
+  | "not_mac"
+  | "mac_failed";
+
+export type MacActionFallback = {
+  type: "open_url" | "copy" | "download" | "save_local" | "stub";
+  url?: string;
+  text?: string;
+  filename?: string;
+  content?: string;
+  mime?: string;
+  entry?: { toolId: string; text: string; savedAt: string };
+};
 
 export type ExecutionEffect = {
-  type: "open_url" | "save_local" | "copy" | "download" | "stub";
+  type: "open_url" | "save_local" | "copy" | "download" | "mac_action" | "screen" | "stub";
   url?: string;
   path?: string;
   count?: number;
@@ -136,6 +162,9 @@ export type ExecutionEffect = {
   filename?: string;
   content?: string;
   mime?: string;
+  query?: string;
+  summary?: string;
+  fallback?: MacActionFallback;
   entry?: { toolId: string; text: string; savedAt: string };
 };
 

@@ -11,6 +11,8 @@ const CODE_RE =
 
 const GITHUB_HOSTS = new Set(["github.com", "www.github.com", "gist.github.com"]);
 
+const UNSAFE_PATH = /[;|&$`\n\r]|\$\(/;
+
 /** Collapse whitespace for previews and search queries. Does not log. */
 export function collapsedText(input: string, max = MAX_COLLAPSE): string {
   const text = input.trim().replace(/\s+/g, " ");
@@ -47,6 +49,49 @@ export function looksLikeCode(input: string): boolean {
     return false;
   }
   return CODE_RE.test(trimmed);
+}
+
+/** First line looks like a file or folder path. Never treat URLs as paths. */
+export function firstFilePath(input: string): string | null {
+  const firstLine = input.trim().split(/\r?\n/, 1)[0]?.trim() ?? "";
+  if (!firstLine || firstLine.length > 400 || UNSAFE_PATH.test(firstLine)) {
+    return null;
+  }
+  if (/^https?:\/\//i.test(firstLine) || /\s/.test(firstLine)) {
+    return null;
+  }
+  if (/^(?:~|\/|[A-Za-z]:[\\/])/.test(firstLine)) {
+    return firstLine;
+  }
+  return null;
+}
+
+export function looksLikeFilePath(input: string): boolean {
+  return firstFilePath(input) !== null;
+}
+
+/** One dictionary-like word. Used to surface dict:// / Spotlight, not to classify meaning. */
+export function looksLikeDictionaryWord(input: string): boolean {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed.length < 3 || trimmed.length > 40 || /\s/.test(trimmed)) {
+    return false;
+  }
+  if (/^https?:\/\//i.test(trimmed) || looksLikeJson(trimmed) || looksLikeCode(trimmed)) {
+    return false;
+  }
+  return /^[\p{L}][\p{L}'’-]*$/u.test(trimmed);
+}
+
+export function dictionaryWord(input: string): string | null {
+  const trimmed = input.trim();
+  if (looksLikeDictionaryWord(trimmed)) {
+    return trimmed;
+  }
+  const first = trimmed.split(/\s+/)[0]?.replace(/[),.;!?]+$/u, "") ?? "";
+  if (looksLikeDictionaryWord(first)) {
+    return first;
+  }
+  return null;
 }
 
 export function firstGithubUrl(urls: readonly string[]): string | null {

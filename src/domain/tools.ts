@@ -1,5 +1,12 @@
 import { parseFacts } from "./parsers";
-import { firstGithubUrl, looksLikeAddress, looksLikeCode, looksLikeJson } from "./signals";
+import {
+  firstGithubUrl,
+  looksLikeAddress,
+  looksLikeCode,
+  looksLikeDictionaryWord,
+  looksLikeFilePath,
+  looksLikeJson,
+} from "./signals";
 import {
   MAX_SUGGESTIONS,
   TOOL_IDS,
@@ -11,11 +18,11 @@ import {
 
 export const KIND_TOOLS: Record<ContentKind, readonly ToolId[]> = {
   error_log: ["open_log_viewer", "search_error", "search_stack_overflow"],
-  url: ["open_url", "open_github", "save_link"],
-  meeting: ["draft_event", "draft_email", "capture_task"],
-  task: ["capture_task", "create_checklist", "copy_to_clipboard"],
-  idea: ["capture_idea", "save_note", "search_web"],
-  ordinary: ["save_note", "copy_to_clipboard", "search_web"],
+  url: ["open_url", "open_in_safari", "open_in_chrome"],
+  meeting: ["draft_event", "open_in_calendar", "add_reminder"],
+  task: ["capture_task", "add_reminder", "create_checklist"],
+  idea: ["capture_idea", "open_in_notes", "share_text"],
+  ordinary: ["save_note", "open_in_notes", "search_web"],
 };
 
 export const CLARIFY_TOOLS: readonly ToolId[] = ["capture_task", "capture_idea", "save_note"];
@@ -31,6 +38,20 @@ const COMPANION_TOOLS: Partial<Record<ToolId, readonly ToolId[]>> = {
   save_markdown: ["save_markdown", "save_note", "copy_to_clipboard"],
   save_code_snippet: ["save_code_snippet", "save_note", "copy_to_clipboard"],
   save_quote: ["save_quote", "save_note", "copy_to_clipboard"],
+  open_github: ["open_github", "open_url", "save_link"],
+  open_in_notes: ["open_in_notes", "save_note", "share_text"],
+  add_reminder: ["add_reminder", "capture_task", "create_checklist"],
+  open_in_calendar: ["open_in_calendar", "draft_event", "add_reminder"],
+  reveal_in_finder: ["reveal_in_finder", "open_in_terminal", "save_note"],
+  open_in_safari: ["open_in_safari", "open_in_chrome", "open_url"],
+  open_in_chrome: ["open_in_chrome", "open_in_safari", "open_url"],
+  dictionary_lookup: ["dictionary_lookup", "spotlight_search", "search_web"],
+  spotlight_search: ["spotlight_search", "search_web", "save_note"],
+  open_in_terminal: ["open_in_terminal", "reveal_in_finder", "save_note"],
+  run_shortcut: ["run_shortcut", "save_note", "copy_to_clipboard"],
+  speak_text: ["speak_text", "share_text", "save_note"],
+  share_text: ["share_text", "copy_to_clipboard", "save_note"],
+  screen_paste: ["screen_paste", "save_note", "copy_to_clipboard"],
 };
 
 export const TOOLS: Record<ToolId, ToolDefinition> = {
@@ -178,6 +199,84 @@ export const TOOLS: Record<ToolId, ToolDefinition> = {
     description: "Turn lines into a markdown checklist and append them locally after Confirm.",
     safeFallback: false,
   },
+  open_in_notes: {
+    id: "open_in_notes",
+    label: "Open in Notes",
+    description: "Create an Apple Notes draft after Confirm. Web/Linux saves a local note instead.",
+    safeFallback: false,
+  },
+  add_reminder: {
+    id: "add_reminder",
+    label: "Add reminder",
+    description: "Create a Reminders item after Confirm. Web/Linux saves a local task instead.",
+    safeFallback: false,
+  },
+  open_in_calendar: {
+    id: "open_in_calendar",
+    label: "Open in Calendar",
+    description: "Open Calendar with an .ics draft after Confirm. Never writes a calendar itself.",
+    safeFallback: false,
+  },
+  reveal_in_finder: {
+    id: "reveal_in_finder",
+    label: "Reveal in Finder",
+    description: "Reveal a pasted path or the local inbox folder in Finder after Confirm.",
+    safeFallback: false,
+  },
+  open_in_safari: {
+    id: "open_in_safari",
+    label: "Open in Safari",
+    description: "Open the parsed http(s) link in Safari after Confirm. Other browsers on web/Linux.",
+    safeFallback: false,
+  },
+  open_in_chrome: {
+    id: "open_in_chrome",
+    label: "Open in Chrome",
+    description: "Open the parsed http(s) link in Chrome after Confirm if Chrome is installed.",
+    safeFallback: false,
+  },
+  dictionary_lookup: {
+    id: "dictionary_lookup",
+    label: "Look up word",
+    description: "Open Dictionary (dict://) for a word after Confirm. Web uses Wiktionary.",
+    safeFallback: false,
+  },
+  spotlight_search: {
+    id: "spotlight_search",
+    label: "Spotlight search",
+    description: "Open Spotlight with the paste as a query after Confirm. Copies the query elsewhere.",
+    safeFallback: false,
+  },
+  open_in_terminal: {
+    id: "open_in_terminal",
+    label: "Open in Terminal",
+    description: "Open Terminal at a pasted path after Confirm. Never runs the paste as a shell command.",
+    safeFallback: false,
+  },
+  run_shortcut: {
+    id: "run_shortcut",
+    label: "Run Shortcut",
+    description: "Run the Shortcut named in Settings after Confirm. The API key is never put on the URL.",
+    safeFallback: false,
+  },
+  speak_text: {
+    id: "speak_text",
+    label: "Speak text",
+    description: "Speak the paste with say after Confirm. Mac only; elsewhere this is a labeled stub.",
+    safeFallback: false,
+  },
+  share_text: {
+    id: "share_text",
+    label: "Share text",
+    description: "Copy the paste and notify after Confirm. Mac may show a notification; no silent send.",
+    safeFallback: false,
+  },
+  screen_paste: {
+    id: "screen_paste",
+    label: "Screen paste",
+    description: "Show an injection and substance summary after Confirm. Local only; nothing is sent.",
+    safeFallback: false,
+  },
 };
 
 export const ALLOWLIST = new Set<string>(TOOL_IDS);
@@ -241,6 +340,12 @@ export function preferredTools(kind: ContentKind, input: string, parsed: ParsedF
   }
   if (looksLikeCode(input) && (kind === "ordinary" || kind === "idea")) {
     extras.push("save_code_snippet", "copy_to_clipboard", "save_note");
+  }
+  if (looksLikeFilePath(input) && kind === "ordinary") {
+    extras.push("reveal_in_finder", "open_in_terminal", "save_note");
+  }
+  if (looksLikeDictionaryWord(input) && kind === "ordinary") {
+    extras.push("dictionary_lookup", "spotlight_search", "search_web");
   }
   return uniqueIds([...extras, ...KIND_TOOLS[kind]]);
 }

@@ -3,8 +3,8 @@ import { MAX_SUGGESTIONS, TOOL_IDS } from "../domain/types";
 
 describe("tool catalogue", () => {
   it("allowlists about 20–30 tools with labels and Jev descriptions", () => {
-    expect(TOOL_IDS.length).toBeGreaterThanOrEqual(20);
-    expect(TOOL_IDS.length).toBeLessThanOrEqual(30);
+    expect(TOOL_IDS.length).toBeGreaterThanOrEqual(30);
+    expect(TOOL_IDS.length).toBeLessThanOrEqual(50);
     expect(catalogueCandidates()).toHaveLength(TOOL_IDS.length);
     for (const id of TOOL_IDS) {
       expect(TOOLS[id].id).toBe(id);

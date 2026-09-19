@@ -1,5 +1,11 @@
 import { parseFacts } from "./parsers";
-import { looksLikeAddress, looksLikeCode, looksLikeJson } from "./signals";
+import {
+  looksLikeAddress,
+  looksLikeCode,
+  looksLikeDictionaryWord,
+  looksLikeFilePath,
+  looksLikeJson,
+} from "./signals";
 import type { ContentKind } from "./types";
 
 const INJECTION_RE =
@@ -43,7 +49,9 @@ export function classify(input: string): InternalKind {
     facts.emails.length > 0 ||
     looksLikeJson(trimmed) ||
     looksLikeAddress(trimmed) ||
-    looksLikeCode(trimmed);
+    looksLikeCode(trimmed) ||
+    looksLikeFilePath(trimmed) ||
+    looksLikeDictionaryWord(trimmed);
 
   if (words.length <= 3 && !strong) {
     return "ambiguous";

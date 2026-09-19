@@ -45,8 +45,8 @@ Do not expect a signed or notarized binary. There are no signing secrets in this
 | Piece | Role |
 | --- | --- |
 | WKWebView main window | The same PastePilot UI as the web prototype |
-| Bundled Node + `server.mjs` | Localhost-only server: static UI, `POST /api/decide`, `POST /api/save`, `POST /api/export`, `/share` |
-| Settings (`⌘,`) | Keychain API key, provider, model |
+| Bundled Node + `server.mjs` | Localhost-only server: static UI, `POST /api/decide`, `POST /api/save`, `POST /api/export`, `POST /api/mac`, `/share` |
+| Settings (`⌘,`) | Keychain API key, provider, model, preferred browser, optional Shortcut name |
 | Services + `pastepilot://ingest` | Open/focus the app window with `?text=` |
 
 The zip contains an official Node binary and a production Vite build. It does not contain `TYPESAFE_API_KEY`, `.env`, or signing secrets.
@@ -61,8 +61,31 @@ Fields:
 - **Model** — optional (`jev-latest` by default). UserDefaults suite `local.pastepilot.settings`.
 - **Provider** — `mock` | `local` | `jev`. Same suite. The main window adds `?provider=` when you chose `jev` or `local`.
 - **Server URL** — used by the CLI share helper only. The app window always uses the bundled localhost server (`127.0.0.1`, default port `18763`).
+- **Preferred browser** — `default` | `safari` | `chrome`. Used by **Open in Safari** / **Open in Chrome** after Confirm. Never put on a URL.
+- **Shortcut** — optional name for **Run Shortcut** (`shortcuts://run-shortcut?name=`). The API key is never added.
 
-The WKWebView never sees the key. Saving Settings restarts the bundled server so a new key or model is picked up.
+## Mac Confirm tools
+
+Invoked only after Confirm, from the bundled server (`POST /api/mac`). `osascript` / `open` / `say` are mocked in unit tests. Web/Linux get an honest fallback (local save, download, copy, or a labeled stub).
+
+| Tool | Mac (after Confirm) | Elsewhere |
+| --- | --- | --- |
+| **Open in Notes** | Create a Notes draft | Save a local note |
+| **Add reminder** | Create a Reminders item | Save a local task |
+| **Open in Calendar** | Write `.ics` and `open` it | Download the `.ics` draft |
+| **Reveal in Finder** | `open -R` a pasted path or the inbox folder | Labeled stub |
+| **Open in Safari / Chrome** | `open -a` that browser with an allowlisted http(s) URL | Default browser |
+| **Look up word** | `dict://` | Wiktionary |
+| **Spotlight search** | Copy query + try Spotlight | Copy the query |
+| **Open in Terminal** | `open -a Terminal` with a path, or the app alone. **Never** runs the paste as a command | Labeled stub |
+| **Run Shortcut** | `shortcuts://run-shortcut?name=` from Settings | Labeled stub |
+| **Speak text** | `say` | Labeled stub |
+| **Share text** | Copy + notification | Copy |
+| **Screen paste** | Local injection/substance summary (any OS) | Same |
+
+Injection still abstains. The UI still shows at most three buttons. CI `mac-release` rebuilds the `.app` on merge to `main`.
+
+The WKWebView never sees the key. Saving Settings restarts the bundled server so a new key, model, browser, or Shortcut name is picked up.
 
 Layout preview (this VM cannot render SwiftUI): [settings-preview.html](settings-preview.html). Source: [`PastePilotService/SettingsView.swift`](PastePilotService/SettingsView.swift).
 

@@ -1,11 +1,13 @@
 import { buildIcsDraft, buildMailtoUrl } from "./drafts";
+import { buildMacActionPayload, isMacActionTool, type MacActionPayload } from "./macActions";
 import { firstAllowlistedUrl } from "./openUrl";
 import { parseFacts } from "./parsers";
+import { screenPaste } from "./screenPaste";
 import { buildLocalSaveEntry, isLocalSaveTool, type LocalSaveEntry } from "./saveLocal";
 import { isSearchOpenTool, urlForSearchTool } from "./searchLinks";
 import { prettyJson } from "./signals";
 import { isToolId, toolLabel } from "./tools";
-import type { ActionPreview, ExecutionResult, ToolId } from "./types";
+import type { ActionPreview, ExecutionResult, MacActionFallback, ToolId } from "./types";
 
 export type ConfirmArgs = {
   preview: ActionPreview;
@@ -42,11 +44,28 @@ export type StubEffect = {
   toolId: ToolId;
 };
 
+export type MacActionEffect = {
+  type: "mac_action";
+  toolId: ToolId;
+  text: string;
+  url?: string;
+  path?: string;
+  query?: string;
+  fallback: MacActionFallback;
+};
+
+export type ScreenEffect = {
+  type: "screen";
+  summary: string;
+};
+
 export type ExecutionEffect =
   | OpenUrlEffect
   | SaveLocalEffect
   | CopyEffect
   | DownloadEffect
+  | MacActionEffect
+  | ScreenEffect
   | StubEffect;
 
 function urlsForOpen(preview: ActionPreview, input: string | undefined): string[] {
@@ -209,9 +228,52 @@ export function confirmExecution(args: ConfirmArgs): ExecutionResult {
     };
   }
 
+  if (toolId === "screen_paste") {
+    if (!input.trim()) {
+      return fail("empty", "Nothing to screen. Confirm was ignored.");
+    }
+    const screened = screenPaste(input);
+    return {
+      ok: true,
+      message: "Screened this paste locally. Nothing was sent or written.",
+      effect: { type: "screen", summary: screened.summary },
+    };
+  }
+
+  if (isMacActionTool(toolId)) {
+    const payload = buildMacActionPayload(toolId, input, parsed);
+    if ("error" in payload) {
+      const reason = payload.error === "empty" ? "empty" : payload.error;
+      const message =
+        payload.error === "no_url"
+          ? "No http(s) link to open. Confirm was ignored."
+          : payload.error === "no_query"
+            ? "Nothing to look up. Confirm was ignored."
+            : "Nothing to run. Confirm was ignored.";
+      return fail(reason, message);
+    }
+    return okMacAction(payload);
+  }
+
   return {
     ok: true,
     message: `Prepared “${toolLabel(toolId)}” locally. Nothing was sent or scheduled.`,
     effect: { type: "stub", toolId },
+  };
+}
+
+function okMacAction(payload: MacActionPayload): ExecutionResult {
+  return {
+    ok: true,
+    message: `Confirm will run “${toolLabel(payload.toolId)}” on this Mac if available. Nothing silent runs.`,
+    effect: {
+      type: "mac_action",
+      toolId: payload.toolId,
+      text: payload.text,
+      url: payload.url,
+      path: payload.path,
+      query: payload.query,
+      fallback: payload.fallback,
+    },
   };
 }

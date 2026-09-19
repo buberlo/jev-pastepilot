@@ -11,9 +11,17 @@ export {
 } from "./decisionLayer";
 export { confirmExecution } from "./execute";
 export { logOperational } from "./log";
+export { isMacActionTool, MAC_ACTION_TOOLS } from "./macActions";
 export { allowlistedHttpUrl, firstAllowlistedUrl } from "./openUrl";
 export { parseFacts } from "./parsers";
-export { copyConfirmedText, openConfirmedUrl, persistDownload, persistLocalSave } from "./persist";
+export {
+  copyConfirmedText,
+  openConfirmedUrl,
+  persistDownload,
+  persistLocalSave,
+  persistMacAction,
+} from "./persist";
+export { screenPaste } from "./screenPaste";
 export { buildPreview } from "./preview";
 export {
   buildLocalSaveEntry,
@@ -39,6 +47,7 @@ export type {
   DecisionProviderId,
   DecisionResult,
   ExecutionResult,
+  MacActionFallback,
   OperationalFailure,
   RouteOutcome,
   ToolId,

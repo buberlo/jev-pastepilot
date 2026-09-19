@@ -18,15 +18,25 @@ describe("Mac Settings source", () => {
     const builder = await readFile(path.join(root, "ShareURLBuilder.swift"), "utf8");
     const app = await readFile(path.join(root, "PastePilotApp.swift"), "utf8");
     const web = await readFile(path.join(root, "MainWebView.swift"), "utf8");
+    const settings = await readFile(path.join(root, "AppSettings.swift"), "utf8");
     const server = await readFile(path.join(root, "LocalServer.swift"), "utf8");
     const service = await readFile(path.join(root, "ServiceProvider.swift"), "utf8");
 
     expect(view).toContain("SecureField");
     expect(view).toContain("SettingsView");
+    expect(view).toContain("preferredBrowser");
+    expect(view).toContain("shortcutName");
+    expect(view).toContain("shortcuts://run-shortcut");
     expect(app).toContain("WindowGroup(\"PastePilot\")");
     expect(app).toContain("Settings");
     expect(web).toContain("WKWebView");
     expect(web).toContain("mailto");
+    expect(web).toContain("dict");
+    expect(web).toContain("shortcuts");
+    expect(settings).toContain("preferredBrowser");
+    expect(settings).toContain("shortcutName");
+    expect(server).toContain("PASTEPILOT_PREFERRED_BROWSER");
+    expect(server).toContain("PASTEPILOT_SHORTCUT_NAME");
     expect(server).toContain("TYPESAFE_API_KEY");
     expect(server).toContain("PASTEPILOT_READY");
     expect(server).toContain("127.0.0.1");
@@ -48,6 +58,8 @@ describe("Mac Settings source", () => {
     expect((await stat(preview)).isFile()).toBe(true);
     const html = await readFile(preview, "utf8");
     expect(html).toContain("PastePilot Settings");
+    expect(html).toContain("Preferred browser");
+    expect(html).toContain("Shortcut");
     expect(html).toContain("local.pastepilot.typesafe");
     expect(html).toContain("Layout preview");
     expect(html).not.toMatch(SECRETISH);

@@ -1,3 +1,4 @@
+import { isMacActionTool } from "./macActions";
 import { parseFacts } from "./parsers";
 import { isLocalSaveTool } from "./saveLocal";
 import { isSearchOpenTool } from "./searchLinks";
@@ -37,6 +38,15 @@ export function buildPreview(
   }
   if (toolId === "format_json") {
     facts.push("Pretty-print only runs if the paste is valid JSON.");
+  }
+  if (toolId === "run_shortcut") {
+    facts.push("Uses the Shortcut name from Settings (PASTEPILOT_SHORTCUT_NAME). Never the API key.");
+  }
+  if (toolId === "open_in_terminal") {
+    facts.push("Opens Terminal at a pasted path, or the app alone. The paste is never a shell command.");
+  }
+  if (toolId === "screen_paste") {
+    facts.push("Local screen only: injection flag, kind, and parsed counts. No write.");
   }
   if (snippet) {
     facts.push(`Text: ${snippet}`);
@@ -78,6 +88,44 @@ function previewSummary(toolId: ToolId): string {
       return "Confirm will append this text to a local inbox. PastePilot does not generate a summary.";
     }
     return "Confirm will append this text to a local inbox file. Nothing is emailed or scheduled.";
+  }
+  if (toolId === "screen_paste") {
+    return "Confirm will show an injection and substance summary. Nothing is sent or written.";
+  }
+  if (isMacActionTool(toolId)) {
+    if (toolId === "open_in_notes") {
+      return "Confirm will create an Apple Notes draft on Mac. Elsewhere this saves a local note.";
+    }
+    if (toolId === "add_reminder") {
+      return "Confirm will create a Reminders item on Mac. Elsewhere this saves a local task.";
+    }
+    if (toolId === "open_in_calendar") {
+      return "Confirm will open Calendar with an .ics draft on Mac. Elsewhere it downloads the draft. Nothing is scheduled.";
+    }
+    if (toolId === "reveal_in_finder") {
+      return "Confirm will reveal a pasted path or the inbox folder in Finder. Finder is Mac-only.";
+    }
+    if (toolId === "open_in_safari" || toolId === "open_in_chrome") {
+      return "Confirm will open the first http(s) link in that browser on Mac. Elsewhere the default browser is used.";
+    }
+    if (toolId === "dictionary_lookup") {
+      return "Confirm will open Dictionary (dict://) on Mac, or Wiktionary on the web.";
+    }
+    if (toolId === "spotlight_search") {
+      return "Confirm will copy the query and try Spotlight on Mac. Elsewhere the query is copied.";
+    }
+    if (toolId === "open_in_terminal") {
+      return "Confirm will open Terminal at a pasted path. The paste is never executed as a command.";
+    }
+    if (toolId === "run_shortcut") {
+      return "Confirm will run the Shortcut named in Settings. If none is set, nothing runs.";
+    }
+    if (toolId === "speak_text") {
+      return "Confirm will speak the text with say on Mac. Elsewhere this is a labeled stub.";
+    }
+    if (toolId === "share_text") {
+      return "Confirm will copy the text and notify. No silent send.";
+    }
   }
   return "Confirm is required. Nothing is sent, scheduled, or written externally.";
 }

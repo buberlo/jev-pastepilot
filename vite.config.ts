@@ -15,6 +15,7 @@ function pastepilotApiPlugin() {
         pathOnly !== "/api/decide" &&
         pathOnly !== "/api/save" &&
         pathOnly !== "/api/export" &&
+        pathOnly !== "/api/mac" &&
         pathOnly !== "/health"
       ) {
         next();

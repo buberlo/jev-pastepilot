@@ -78,14 +78,15 @@ Implemented behaviour:
 - **Save idea / task / note / markdown / code / quote / link / checklist / for later** — Confirm appends a markdown block to a local inbox (dev server: `POST /api/save` → `.local/pastepilot/inbox.md` or `PASTEPILOT_DATA_DIR`). If the server is unavailable, the browser downloads a markdown snippet.
 - **Copy / draft message / extract links** — Confirm copies text or parsed URLs.
 - **Draft event / format JSON / open log viewer** — Confirm writes a local `.ics`, `.json`, or `.log` file (`POST /api/export`, or a browser download).
+- **Mac Confirm tools** — after Confirm, the bundled Mac server may create a Notes/Reminders draft, open Calendar with an `.ics`, reveal a path in Finder, open Safari/Chrome, look up a word (`dict://`), copy a Spotlight query, open Terminal at a path (never a pasted shell command), run a Settings-named Shortcut, speak with `say`, or copy+notify for Share. Web/Linux use labeled fallbacks. **Screen paste** is a local injection/substance summary on every OS.
 
-No email send, calendar write, or other network write. The catalogue is ~24 allowlisted tools; the UI still shows at most three buttons. Share ingest is unchanged: fill the field, route, preview, Confirm.
+No email send, calendar write, silent shell, or other network write. The catalogue is the previous ~24 tools plus Mac actions; the UI still shows at most three buttons. Share ingest is unchanged: fill the field, route, preview, Confirm. Injection still abstains.
 
 Live accuracy is not claimed in this repository. Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Pin `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version; the alias can move. The response `model` field reports the versioned id. Measure routing on your own labelled set; do not substitute a vendor claim.
 
 ## Mac Settings (Keychain)
 
-**Done in this repository.** The SwiftUI Settings window (`PastePilot → Settings…`, `⌘,`) stores `TYPESAFE_API_KEY` in the macOS Keychain only (service `local.pastepilot.typesafe`). Model, provider, and server URL go to UserDefaults. The key is never on `/?text=`, never in git, never in the release zip, and never logged. The Mac v1 app injects the key into its bundled server. `macos/run-dev-with-keychain.sh` still loads the key for the Vite prototype. The web app still uses `.env` or server env.
+**Done in this repository.** The SwiftUI Settings window (`PastePilot → Settings…`, `⌘,`) stores `TYPESAFE_API_KEY` in the macOS Keychain only (service `local.pastepilot.typesafe`). Model, provider, server URL, preferred browser, and optional Shortcut name go to UserDefaults. The key is never on `/?text=`, never in git, never in the release zip, and never logged. The Mac v1 app injects the key and the non-secret Mac prefs into its bundled server. `macos/run-dev-with-keychain.sh` still loads the key for the Vite prototype. The web app still uses `.env` or server env.
 
 ## Mac v1 — in-app UI + bundled server
 
@@ -99,7 +100,7 @@ Live accuracy is not claimed in this repository. Documented model alias: `jev-la
 
 - A notarized / Developer ID–signed Mac `.app` (the unsigned Mac v1 zip is already published).
 - A Windows tray / Share target that opens the same `/?text=` URL.
-- More tool integrations beyond the expanded local catalogue, each with its own permission and confirmation flow.
+- More tool integrations beyond the Mac Confirm catalogue, each with its own permission and confirmation flow.
 - Live TypeSafe measurement on a labelled set (not claimed in this repository).
 
 ## Acceptance criteria
@@ -116,4 +117,4 @@ Passive clipboard surveillance, autonomous browsing, automatic email sending and
 
 ## Delivery boundary
 
-Milestones 1–3, the Share-slice, local Confirm adapters, Mac Settings, Mac v1 (in-app UI + bundled server), and unsigned release CI are implemented and can be reproduced with the README commands. Remaining north-star surfaces (notarization, Windows, more tools) are not part of this milestone.
+Milestones 1–3, the Share-slice, local Confirm adapters, Mac Settings, Mac v1 (in-app UI + bundled server), Mac Confirm tools, and unsigned release CI are implemented and can be reproduced with the README commands. Remaining north-star surfaces (notarization, Windows) are not part of this milestone.

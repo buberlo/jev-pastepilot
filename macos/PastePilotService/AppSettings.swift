@@ -8,6 +8,9 @@ enum AppSettings {
     static let defaultModel = "jev-latest"
     static let defaultProvider = "mock"
     static let providers = ["mock", "local", "jev"]
+    static let defaultPreferredBrowser = "default"
+    static let browsers = ["default", "safari", "chrome"]
+    static let defaultShortcutName = ""
 
     static var dataDirectory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
@@ -38,6 +41,27 @@ enum AppSettings {
         set {
             let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             defaults.set(providers.contains(trimmed) ? trimmed : defaultProvider, forKey: "provider")
+        }
+    }
+
+    static var preferredBrowser: String {
+        get {
+            let value = defaults.string(forKey: "preferredBrowser")?.lowercased()
+            return browsers.contains(value ?? "") ? value! : defaultPreferredBrowser
+        }
+        set {
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            defaults.set(browsers.contains(trimmed) ? trimmed : defaultPreferredBrowser, forKey: "preferredBrowser")
+        }
+    }
+
+    static var shortcutName: String {
+        get {
+            defaults.string(forKey: "shortcutName")?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? defaultShortcutName
+        }
+        set {
+            defaults.set(newValue.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "shortcutName")
         }
     }
 

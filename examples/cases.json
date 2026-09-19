@@ -240,6 +240,51 @@
         "action_id": "open_github"
       },
       "notes": ""
+    },
+    {
+      "id": "mac-path",
+      "input": "/Users/ada/Documents/notes.md",
+      "state": {},
+      "available_actions": [
+        "reveal_in_finder",
+        "open_in_terminal",
+        "save_note"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "reveal_in_finder"
+      },
+      "notes": "A pasted Unix path surfaces Finder/Terminal. Confirm still required."
+    },
+    {
+      "id": "mac-word",
+      "input": "serendipity",
+      "state": {},
+      "available_actions": [
+        "dictionary_lookup",
+        "spotlight_search",
+        "save_note"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "dictionary_lookup"
+      },
+      "notes": "A single dictionary-like word surfaces Look up word."
+    },
+    {
+      "id": "mac-reminder",
+      "input": "TODO: buy milk after the meeting",
+      "state": {},
+      "available_actions": [
+        "capture_task",
+        "add_reminder",
+        "create_checklist"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "capture_task"
+      },
+      "notes": "Tasks still prefer Save as task; Add reminder is a companion."
     }
   ]
 }
