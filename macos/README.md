@@ -1,12 +1,20 @@
-# macOS Share path
+# Share from a Mac
 
-Thin wrapper around the existing web app. Selected text becomes `http://localhost:5173/?text=…`. The MS2 mock router, preview, and Confirm are unchanged. No clipboard watcher.
+Select text → send it to the local PastePilot page → pick one action → Confirm.
 
-The Linux CI / cloud VM cannot build a signed `.app`. Use the URL ingest to prove the loop; build the optional Swift service on a Mac.
+The destination is always:
 
-## 0. Start the web app
+```
+http://localhost:5173/?text=…
+```
 
-From the repository root:
+PastePilot must already be running (`npm run dev` from the repo root). Nothing runs until Confirm. There is no clipboard watcher.
+
+This folder ships **source and an importable Quick Action**. A Linux machine cannot produce a signed or notarized `.app`. Do not expect one here.
+
+Windows share / tray is later work. It can open the same `/?text=` URL when it exists.
+
+## 1. Start PastePilot
 
 ```sh
 npm install
@@ -15,13 +23,43 @@ npm run dev
 
 Leave it at `http://localhost:5173`. Override the base with `PASTEPILOT_URL` if Vite picked another port.
 
-## 1. Prove the loop (any OS)
+## 2. Install the Quick Action (recommended)
+
+On a Mac, either:
+
+- **Double-click** [`install.command`](install.command), or
+- Copy [`Send to PastePilot.workflow`](Send to PastePilot.workflow) into `~/Library/Services/`
+
+Then select text in any app → **Services → Send to PastePilot**.
+
+If the item is missing: **System Settings → Keyboard → Keyboard Shortcuts → Services**. Enable **Send to PastePilot** under Text. The first run may ask to allow Automator to control the browser.
+
+That is the whole install. The workflow embeds the AppleScript; it does not need a path to this repo.
+
+## 3. Or make a Shortcut (Share Sheet)
+
+No repo path required.
+
+1. Open **Shortcuts** → **+** → name it `Send to PastePilot`.
+2. Shortcut details (ⓘ): enable **Use as Quick Action**, **Services Menu**, and **Share Sheet**. Receive **Text**.
+3. Add **URL Encode** (or **Encode** the shortcut input).
+4. Add **Open URLs** with:
+
+   ```
+   http://localhost:5173/?text=
+   ```
+
+   plus the encoded text.
+
+Select text → **Services → Send to PastePilot**, or share text into the shortcut.
+
+## 4. Prove the loop (any OS)
 
 ```sh
 ./macos/share-to-pastepilot.sh --print-url "Service failed: connection refused on the database socket."
 ```
 
-That prints:
+Prints:
 
 ```
 http://localhost:5173/?text=Service%20failed%3A%20connection%20refused%20on%20the%20database%20socket.
@@ -42,47 +80,23 @@ curl -sS -o /dev/null -D - -X POST \
 
 The 303 `Location` is the same `/?text=` ingest.
 
-## 2. Services menu via Automator (smallest Mac install)
+## 5. Optional Swift Service (Mac + Xcode tools)
 
-1. Open **Automator**.
-2. **New Document** → **Quick Action**.
-3. At the top: **Workflow receives** `text` **in** `any application`.
-4. From the action library, drag **Run AppleScript** into the workflow.
-5. Replace the stub with the contents of [`PastePilot.applescript`](PastePilot.applescript).
-6. **File → Save**. Name it `Send to PastePilot`.
-7. In any app, select text → right-click or the app **Services** menu → **Send to PastePilot**.
-8. If it is missing: **System Settings → Keyboard → Keyboard Shortcuts → Services**. Enable **Send to PastePilot** (under Text).
-9. First run may ask to allow Automator / the script to control the browser. Allow it.
-
-The Quick Action lives in `~/Library/Services/Send to PastePilot.workflow`.
-
-## 3. Shortcuts / Share Sheet
-
-1. Open **Shortcuts**.
-2. **+** → name it `Send to PastePilot`.
-3. Open shortcut details (ⓘ). Enable **Use as Quick Action**, **Services Menu**, and **Share Sheet**. Receive **Text**.
-4. Add **Run Shell Script**. Pass input as **stdin**. Script:
-
-   ```sh
-   /bin/bash "/ABSOLUTE/PATH/TO/repo/macos/share-to-pastepilot.sh"
-   ```
-
-   Replace the path with this repository. The script reads stdin.
-
-5. Alternatively, without the repo script: **URL Encode** the shortcut input, then **Open URLs** with `http://localhost:5173/?text=` plus the encoded text.
-6. Select text in another app → **Services → Send to PastePilot**, or share text into the shortcut from the Share Sheet.
-
-## 4. Optional Swift Service (.app)
-
-On a Mac with Xcode Command Line Tools:
+Not notarized. Build it yourself:
 
 ```sh
 ./macos/PastePilotService/build.sh
 ```
 
-Copy `macos/PastePilotService/dist/PastePilot.app` to `~/Applications`, launch it once, then use **Services → Send to PastePilot**. Details: [`PastePilotService/main.swift`](PastePilotService/main.swift) and [`PastePilotService/Info.plist`](PastePilotService/Info.plist).
+or:
 
-This is optional. Automator + the shell script is enough.
+```sh
+cd macos/PastePilotService && swift build -c release
+```
+
+Then wrap the binary with [`Info.plist`](PastePilotService/Info.plist) (the `build.sh` script does this) and copy `dist/PastePilot.app` to `~/Applications`. Launch it once, then **Services → Send to PastePilot**.
+
+Source: [`PastePilotService/main.swift`](PastePilotService/main.swift). AppleScript-only source: [`PastePilot.applescript`](PastePilot.applescript).
 
 ## Clipboard
 

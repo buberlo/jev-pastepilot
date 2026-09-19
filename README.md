@@ -9,13 +9,21 @@ Paste or share some text. Get a few useful actions. Confirm before anything happ
 
 ![After paste, PastePilot offers at most three actions](docs/demo/paste-actions.png)
 
-![Preview, then a single Confirm — still a local stub](docs/demo/preview-confirm.png)
+![Preview, then a single Confirm](docs/demo/preview-confirm.png)
 
 PastePilot is a small launcher, not a chatbot. You give it text. It suggests at most three things you might do with that text. You pick one, read a short preview, and tap Confirm. Until then, nothing is sent, scheduled, or written.
 
 ## What it is
 
-You paste (or Share) a log line, a meeting note, a link, or an idea. PastePilot offers a short list of allowlisted actions — for example **Open log viewer**, **Draft event**, or **Save idea**. Tap a button to see a preview. Confirm is still a local preview today: it does not send mail, write a calendar, or call an external API.
+You paste (or Share) a log line, a meeting note, a link, or an idea. PastePilot offers a short list of allowlisted actions — for example **Open link**, **Draft event**, or **Save idea**. Tap a button to see a preview. Confirm is required.
+
+**What Confirm does now**
+
+- **Open link** — opens the first parsed `http` or `https` URL in your browser. Other schemes (`javascript:`, `data:`, `file:`, …) and URLs with passwords are blocked.
+- **Save idea / Save as task / Save note** — appends the text to a local inbox file (`.local/pastepilot/inbox.md` when you use `npm run dev`, or a download if the local server is not there). Set `PASTEPILOT_DATA_DIR` to choose another folder.
+- **Everything else** (draft event, log viewer, search docs) is still a local stub.
+
+Confirm never sends email, writes a calendar, or calls an external API. Opening the URL you confirmed is the only network step.
 
 Routing is typed: a classifier picks from a fixed tool list. Exact dates, URLs, and emails are parsed in ordinary code and shown in the preview. They never invent a send or a schedule.
 
@@ -67,7 +75,7 @@ Default routing is the offline mock. To try live TypeSafe Jev routing:
 2. Set `TYPESAFE_API_KEY` there or in your shell. Never commit a real key. Never log it.
 3. Open `http://localhost:5173/?provider=jev`, or start with `DECISION_PROVIDER=jev npm run dev`.
 
-The browser never sees the key. It posts a routing request to local `POST /api/decide`. Selecting Jev sends the pasted text to TypeSafe for **routing only**. Confirm is still the local stub.
+The browser never sees the key. It posts a routing request to local `POST /api/decide`. Selecting Jev sends the pasted text to TypeSafe for **routing only**. Confirm still uses the local adapters above.
 
 If the key is missing or the call fails (timeout, malformed body, HTTP 429), PastePilot **fail-opens**: the text stays editable and you get the same safe manual tools. It does not crash and does not pretend a live success.
 
@@ -83,7 +91,7 @@ Live E2E (skipped without a key): `TYPESAFE_API_KEY=… npm test` — see `src/t
 
 Install steps live in [macos/README.md](macos/README.md).
 
-Short version: keep `npm run dev` running, then send selected text through a Quick Action, Shortcut, or the optional Swift Service. The browser opens with the field filled and at most three actions. Confirm is still required.
+Short version: keep `npm run dev` running, then **double-click** `macos/install.command` (or copy the bundled Quick Action into `~/Library/Services`). Select text → **Services → Send to PastePilot**. The browser opens `/?text=` with the field filled and at most three actions. Confirm is still required.
 
 `--clipboard` on the helper script is an explicit flag. There is no passive clipboard surveillance.
 
@@ -95,9 +103,10 @@ Windows share / tray is not built yet. A later slice can open the same `/?text=`
 | --- | --- |
 | **MS1** — paste page, ≤3 actions, preview → Confirm | Done |
 | **MS2** — parsers, allowlisted actions, replaceable router, failure paths | Done |
-| **Share** — URL ingest + thin Mac Services / Shortcuts wrapper | Done |
+| **Share** — URL ingest + importable Mac Quick Action / Shortcuts | Done |
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
-| **Next** — signed Mac `.app`, Windows share / tray, more tools | Not started |
+| **Confirm tools** — open allowlisted http(s); append idea/task/note locally | Done |
+| **Next** — notarized Mac `.app`, Windows share / tray, more tools | Not started |
 
 A slice is done when you can reproduce it with the commands above. See [docs/MVP.md](docs/MVP.md).
 
@@ -105,7 +114,7 @@ A slice is done when you can reproduce it with the commands above. See [docs/MVP
 
 - Clipboard access is explicit. No background monitoring.
 - Pasted text is untrusted data. It cannot grant new permissions.
-- Routing does not send, schedule, or write anything outside this page.
+- Routing does not send, schedule, or write anything. Confirm may open one allowlisted http(s) link or append to a local file — never email or calendar.
 - Exact values (dates, URLs, emails) are parsed in code, separate from “what kind of text is this?”
 - Provider keys stay server-side. Never commit them. Never log `TYPESAFE_API_KEY`.
 
@@ -124,7 +133,7 @@ A slice is done when you can reproduce it with the commands above. See [docs/MVP
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, UI smoke |
+| `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, local save, UI smoke |
 | `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side |
 
 These checks do not measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.

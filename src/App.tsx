@@ -4,6 +4,9 @@ import {
   buildPreview,
   confirmExecution,
   newStateVersion,
+  openConfirmedUrl,
+  isLocalSaveTool,
+  persistLocalSave,
   readDemoOptions,
   readSharedText,
   routePaste,
@@ -97,19 +100,70 @@ export default function App() {
     setResult(null);
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!preview) {
       return;
     }
-    const execution = confirmExecution({
+    const gated = confirmExecution({
       preview,
       currentStateVersion: stateVersion,
       confirmed: true,
+      input: text,
     });
-    setResult(execution);
-    if (execution.ok) {
-      setPreview(null);
+    if (!gated.ok || !gated.effect) {
+      setResult(gated);
+      return;
     }
+
+    if (gated.effect.type === "open_url" && gated.effect.url) {
+      const opened = openConfirmedUrl(gated.effect.url);
+      if (!opened) {
+        setResult({
+          ok: false,
+          reason: "open_blocked",
+          message: "The browser blocked the new tab. Allow pop-ups, then Confirm again.",
+        });
+        return;
+      }
+      setResult(gated);
+      setPreview(null);
+      return;
+    }
+
+    if (
+      gated.effect.type === "save_local" &&
+      gated.effect.entry &&
+      isLocalSaveTool(gated.effect.entry.toolId)
+    ) {
+      const persisted = await persistLocalSave({
+        toolId: gated.effect.entry.toolId,
+        text: gated.effect.entry.text,
+        savedAt: gated.effect.entry.savedAt,
+      });
+      if (!persisted.ok) {
+        setResult({
+          ok: false,
+          reason: "save_failed",
+          message: persisted.message,
+        });
+        return;
+      }
+      setResult({
+        ...gated,
+        message: persisted.message,
+        effect: {
+          ...gated.effect,
+          path: persisted.path,
+          count: persisted.count,
+          downloaded: persisted.downloaded,
+        },
+      });
+      setPreview(null);
+      return;
+    }
+
+    setResult(gated);
+    setPreview(null);
   }
 
   const showRouted = outcome !== null;
@@ -202,7 +256,7 @@ export default function App() {
             </ul>
           ) : null}
           <div className="preview-actions">
-            <button type="button" className="confirm-button" onClick={handleConfirm}>
+            <button type="button" className="confirm-button" onClick={() => void handleConfirm()}>
               Confirm
             </button>
             <button type="button" className="quiet-button" onClick={() => setPreview(null)}>
@@ -220,10 +274,30 @@ export default function App() {
 
       {result?.ok ? (
         <aside className="stub" aria-label="Local preview">
-          <strong>Local preview</strong>
-          The action stayed on this page. No email, calendar, or external API was used.
+          <strong>{resultAsideTitle(result)}</strong>
+          {resultAsideBody(result)}
         </aside>
       ) : null}
     </main>
   );
+}
+
+function resultAsideTitle(result: ExecutionResult): string {
+  if (result.effect?.type === "open_url") {
+    return "Opened link";
+  }
+  if (result.effect?.type === "save_local") {
+    return "Saved locally";
+  }
+  return "Local preview";
+}
+
+function resultAsideBody(result: ExecutionResult): string {
+  if (result.effect?.type === "open_url") {
+    return "Only the confirmed http(s) link was opened. No email, calendar, or other network write.";
+  }
+  if (result.effect?.type === "save_local") {
+    return "Appended to a local file. No email, calendar, or network.";
+  }
+  return "The action stayed on this page. No email, calendar, or external API was used.";
 }

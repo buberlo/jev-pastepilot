@@ -94,6 +94,40 @@ function decidePlugin() {
   };
 }
 
+function savePlugin() {
+  const attach = (server: ViteDevServer | PreviewServer) => {
+    server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: () => void) => {
+      const pathOnly = (req.url ?? "/").split("?")[0];
+      if (pathOnly !== "/api/save") {
+        next();
+        return;
+      }
+      if ((req.method ?? "GET") !== "POST") {
+        res.statusCode = 405;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "method_not_allowed" }));
+        return;
+      }
+
+      void readBody(req)
+        .then(async (body) => {
+          const { runSave } = await import("./src/server/save.ts");
+          const result = await runSave(body);
+          res.statusCode = result.status;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify(result.body));
+        })
+        .catch(next);
+    });
+  };
+
+  return {
+    name: "pastepilot-save",
+    configureServer: attach,
+    configurePreviewServer: attach,
+  };
+}
+
 function pastepilotProvider(): string {
   const raw = process.env.DECISION_PROVIDER ?? process.env.PASTEPILOT_PROVIDER ?? "mock";
   return raw.trim() || "mock";
@@ -103,7 +137,7 @@ export default defineConfig({
   define: {
     __PASTEPILOT_PROVIDER__: JSON.stringify(pastepilotProvider()),
   },
-  plugins: [react(), shareTargetPlugin(), decidePlugin()],
+  plugins: [react(), shareTargetPlugin(), decidePlugin(), savePlugin()],
   test: {
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",

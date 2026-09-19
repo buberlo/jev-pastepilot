@@ -94,10 +94,31 @@ export type ActionPreview = {
   stateVersion: string;
 };
 
+export type ExecutionReason =
+  | "stale"
+  | "unconfirmed"
+  | "unknown_tool"
+  | "blocked_url"
+  | "no_url"
+  | "empty"
+  | "save_failed"
+  | "open_blocked";
+
+export type ExecutionEffect = {
+  type: "open_url" | "save_local" | "stub";
+  url?: string;
+  path?: string;
+  count?: number;
+  downloaded?: boolean;
+  toolId?: string;
+  entry?: { toolId: string; text: string; savedAt: string };
+};
+
 export type ExecutionResult = {
   ok: boolean;
-  reason?: "stale" | "unconfirmed" | "unknown_tool";
+  reason?: ExecutionReason;
   message: string;
+  effect?: ExecutionEffect;
 };
 
 export const MAX_SUGGESTIONS = 3;

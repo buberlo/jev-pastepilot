@@ -35,10 +35,20 @@ export function buildPreview(
   return {
     toolId,
     title: toolLabel(toolId),
-    summary: `${TOOLS[toolId].description} Nothing is sent, scheduled, or written externally.`,
+    summary: previewSummary(toolId),
     facts,
     stateVersion,
   };
+}
+
+function previewSummary(toolId: ToolId): string {
+  if (toolId === "open_url") {
+    return "Confirm will open the first http or https link in your browser. Other schemes are blocked.";
+  }
+  if (toolId === "capture_idea" || toolId === "capture_task" || toolId === "save_note") {
+    return "Confirm will append this text to a local inbox file. Nothing is emailed or scheduled.";
+  }
+  return `${TOOLS[toolId].description} Still a local stub — Nothing is sent, scheduled, or written externally.`;
 }
 
 function collapse(input: string, max: number): string {

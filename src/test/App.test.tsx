@@ -2,6 +2,21 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../App";
 
+function mockSaveFetch() {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/save")) {
+      return {
+        ok: true,
+        json: async () => ({ path: ".local/pastepilot/inbox.md", count: 1 }),
+      } as Response;
+    }
+    return { ok: false, json: async () => ({}) } as Response;
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
 async function pasteIntoField(text: string) {
   const user = userEvent.setup();
   const field = screen.getByLabelText("Paste field");
@@ -12,6 +27,7 @@ async function pasteIntoField(text: string) {
 
 afterEach(() => {
   window.history.replaceState({}, "", "/");
+  vi.unstubAllGlobals();
 });
 
 describe("paste panel smoke", () => {
@@ -57,14 +73,31 @@ describe("paste panel smoke", () => {
   });
 
   it("does not execute until Confirm", async () => {
+    const fetchMock = mockSaveFetch();
     render(<App />);
     const user = await pasteIntoField("An app that lets me assemble virtual model kits.");
     await user.click(await screen.findByRole("button", { name: "Save idea" }));
     expect(screen.getByLabelText("Action preview")).toBeInTheDocument();
-    expect(screen.queryByText(/Prepared/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Saved to/)).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(screen.getByRole("status")).toHaveTextContent(/Prepared/);
-    expect(screen.getByLabelText("Local preview")).toHaveTextContent(/No email, calendar, or external API/);
+    expect(await screen.findByRole("status")).toHaveTextContent(/Saved to/);
+    expect(screen.getByLabelText("Local preview")).toHaveTextContent(/Appended to a local file/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens an allowlisted http(s) URL only after Confirm", async () => {
+    const open = vi.fn(() => ({ closed: false }));
+    vi.stubGlobal("open", open);
+    render(<App />);
+    const user = await pasteIntoField("https://example.com/docs");
+    await user.click(await screen.findByRole("button", { name: "Open link" }));
+    expect(screen.getByLabelText("Action preview")).toHaveTextContent(/http or https/);
+    expect(open).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(open).toHaveBeenCalledWith("https://example.com/docs", "_blank", "noopener,noreferrer");
+    expect(screen.getByRole("status")).toHaveTextContent(/Opened https:\/\/example.com\/docs/);
+    expect(screen.getByLabelText("Local preview")).toHaveTextContent(/confirmed http/);
   });
 
   it("reads the clipboard from the explicit Paste button", async () => {
@@ -129,11 +162,10 @@ describe("paste panel smoke", () => {
     expect(screen.queryByText(/TypeSafe|Jev|confidence|taxonomy/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save as task" }));
     expect(screen.getByLabelText("Action preview")).toBeInTheDocument();
+    mockSaveFetch();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(screen.getByRole("status")).toHaveTextContent(/Prepared/);
-    expect(screen.getByLabelText("Local preview")).toHaveTextContent(
-      /No email, calendar, or external API/,
-    );
+    expect(await screen.findByRole("status")).toHaveTextContent(/Saved to/);
+    expect(screen.getByLabelText("Local preview")).toHaveTextContent(/Appended to a local file/);
   });
 
   it("keeps preview → Confirm on the mock path after a malformed provider response", async () => {
@@ -144,12 +176,11 @@ describe("paste panel smoke", () => {
     expect(screen.getByLabelText("Paste field")).not.toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Save idea" }));
     expect(screen.getByLabelText("Action preview")).toBeInTheDocument();
-    expect(screen.queryByText(/Prepared/)).not.toBeInTheDocument();
+    mockSaveFetch();
+    expect(screen.queryByText(/Saved to/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(screen.getByRole("status")).toHaveTextContent(/Prepared/);
-    expect(screen.getByLabelText("Local preview")).toHaveTextContent(
-      /No email, calendar, or external API/,
-    );
+    expect(await screen.findByRole("status")).toHaveTextContent(/Saved to/);
+    expect(screen.getByLabelText("Local preview")).toHaveTextContent(/Appended to a local file/);
   });
 
   it("shows parsed date hints in the event preview and still requires Confirm", async () => {

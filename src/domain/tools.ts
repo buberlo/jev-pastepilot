@@ -33,7 +33,7 @@ export const TOOLS: Record<ToolId, ToolDefinition> = {
   open_url: {
     id: "open_url",
     label: "Open link",
-    description: "Show the parsed link in a local preview.",
+    description: "Open the parsed http(s) link in your browser after Confirm.",
     safeFallback: false,
   },
   draft_event: {
@@ -45,19 +45,19 @@ export const TOOLS: Record<ToolId, ToolDefinition> = {
   capture_task: {
     id: "capture_task",
     label: "Save as task",
-    description: "Save the text as a local task draft.",
+    description: "Append the text as a task in your local inbox after Confirm.",
     safeFallback: true,
   },
   capture_idea: {
     id: "capture_idea",
     label: "Save idea",
-    description: "Save the text as a local idea draft.",
+    description: "Append the text as an idea in your local inbox after Confirm.",
     safeFallback: true,
   },
   save_note: {
     id: "save_note",
     label: "Save note",
-    description: "Save the text as a local note.",
+    description: "Append the text as a note in your local inbox after Confirm.",
     safeFallback: true,
   },
 };
