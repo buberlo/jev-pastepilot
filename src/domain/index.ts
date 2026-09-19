@@ -11,6 +11,7 @@ export {
   type DecisionScenario,
 } from "./providers";
 export { newRequestId, newStateVersion, readDemoOptions, routePaste } from "./route";
+export { handleShareRequest, readSharedText, shareAppUrl } from "./share";
 export { ALLOWLIST, SAFE_FALLBACK_IDS, TOOLS, isToolId } from "./tools";
 export type {
   ActionPreview,
