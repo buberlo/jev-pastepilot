@@ -13,7 +13,7 @@ export { confirmExecution } from "./execute";
 export { logOperational } from "./log";
 export { allowlistedHttpUrl, firstAllowlistedUrl } from "./openUrl";
 export { parseFacts } from "./parsers";
-export { openConfirmedUrl, persistLocalSave } from "./persist";
+export { copyConfirmedText, openConfirmedUrl, persistDownload, persistLocalSave } from "./persist";
 export { buildPreview } from "./preview";
 export {
   buildLocalSaveEntry,

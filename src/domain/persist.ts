@@ -8,18 +8,16 @@ export type PersistResult = {
   downloaded?: boolean;
 };
 
-function triggerInboxDownload(entry: LocalSaveEntry): boolean {
+function triggerDownload(filename: string, content: string, mime: string): boolean {
   if (typeof document === "undefined" || typeof URL.createObjectURL !== "function") {
     return false;
   }
   try {
-    const blob = new Blob([formatInboxMarkdown(entry)], {
-      type: "text/markdown;charset=utf-8",
-    });
+    const blob = new Blob([content], { type: mime });
     const href = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = href;
-    anchor.download = `pastepilot-${entry.toolId}.md`;
+    anchor.download = filename;
     anchor.rel = "noopener";
     document.body.append(anchor);
     anchor.click();
@@ -29,6 +27,14 @@ function triggerInboxDownload(entry: LocalSaveEntry): boolean {
   } catch {
     return false;
   }
+}
+
+function triggerInboxDownload(entry: LocalSaveEntry): boolean {
+  return triggerDownload(
+    `pastepilot-${entry.toolId}.md`,
+    formatInboxMarkdown(entry),
+    "text/markdown;charset=utf-8",
+  );
 }
 
 /**
@@ -75,4 +81,67 @@ export function openConfirmedUrl(url: string): boolean {
   // Chrome returns null when noopener is set, even if the tab opened.
   window.open(url, "_blank", "noopener,noreferrer");
   return true;
+}
+
+export async function copyConfirmedText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to execCommand. Do not log the pasted text.
+  }
+  if (typeof document === "undefined") {
+    return false;
+  }
+  try {
+    const field = document.createElement("textarea");
+    field.value = text;
+    field.setAttribute("readonly", "true");
+    field.style.position = "fixed";
+    field.style.left = "-9999px";
+    document.body.append(field);
+    field.select();
+    const ok = document.execCommand("copy");
+    field.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function persistDownload(args: {
+  filename: string;
+  content: string;
+  mime: string;
+}): Promise<PersistResult> {
+  try {
+    const response = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: args.filename, content: args.content }),
+    });
+    if (response.ok) {
+      const body = (await response.json()) as { path?: string };
+      const where = body.path ?? "your local folder";
+      return {
+        ok: true,
+        message: `Saved to ${where}. Nothing was sent or scheduled.`,
+        path: body.path,
+      };
+    }
+  } catch {
+    // Fall through to a browser download. Do not log the pasted text.
+  }
+
+  if (triggerDownload(args.filename, args.content, args.mime)) {
+    return {
+      ok: true,
+      message: "Saved a local download. Nothing was sent or scheduled.",
+      downloaded: true,
+    };
+  }
+
+  return { ok: false, message: "Could not save locally." };
 }

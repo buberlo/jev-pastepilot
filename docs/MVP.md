@@ -71,12 +71,15 @@ Implemented behaviour:
 
 ## Local Confirm adapters
 
-**Done in this repository.** Confirm still never auto-runs. After the execution gate and `stateVersion` check, two local adapters are wired:
+**Done in this repository.** Confirm still never auto-runs. After the execution gate and `stateVersion` check, local adapters are wired:
 
-- **Open link** — if parsers found a URL, Confirm opens the first allowlisted `http`/`https` link in the browser. `javascript:`, `data:`, `file:`, credentials, and other schemes are rejected.
-- **Save idea / task / note** — Confirm appends a markdown block to a local inbox (dev server: `POST /api/save` → `.local/pastepilot/inbox.md` or `PASTEPILOT_DATA_DIR`). If the server is unavailable, the browser downloads a markdown snippet. No email, calendar, or other network write.
+- **Open link / search / maps / GitHub** — Confirm opens an allowlisted `http`/`https` URL (parsed link, DuckDuckGo, Stack Overflow, Wikipedia, Google Maps, or GitHub). `javascript:`, `data:`, `file:`, credentials, and other schemes are rejected.
+- **Draft email** — Confirm opens a `mailto:` draft. Nothing is sent.
+- **Save idea / task / note / markdown / code / quote / link / checklist / for later** — Confirm appends a markdown block to a local inbox (dev server: `POST /api/save` → `.local/pastepilot/inbox.md` or `PASTEPILOT_DATA_DIR`). If the server is unavailable, the browser downloads a markdown snippet.
+- **Copy / draft message / extract links** — Confirm copies text or parsed URLs.
+- **Draft event / format JSON / open log viewer** — Confirm writes a local `.ics`, `.json`, or `.log` file (`POST /api/export`, or a browser download).
 
-Unwired catalogue tools (`draft_event`, `open_log_viewer`, `search_docs`) stay local stubs. Share ingest is unchanged: fill the field, route, preview, Confirm.
+No email send, calendar write, or other network write. The catalogue is ~24 allowlisted tools; the UI still shows at most three buttons. Share ingest is unchanged: fill the field, route, preview, Confirm.
 
 Live accuracy is not claimed in this repository. Documented model alias: `jev-latest` → `jev-1.13.0` per official TypeSafe docs (checked 2026-09-19). Pin `TYPESAFE_MODEL=jev-1.13.0` if you have tuned gates against that version; the alias can move. The response `model` field reports the versioned id. Measure routing on your own labelled set; do not substitute a vendor claim.
 
@@ -96,7 +99,7 @@ Live accuracy is not claimed in this repository. Documented model alias: `jev-la
 
 - A notarized / Developer ID–signed Mac `.app` (the unsigned Mac v1 zip is already published).
 - A Windows tray / Share target that opens the same `/?text=` URL.
-- More tool integrations, each with its own permission and confirmation flow.
+- More tool integrations beyond the expanded local catalogue, each with its own permission and confirmation flow.
 - Live TypeSafe measurement on a labelled set (not claimed in this repository).
 
 ## Acceptance criteria

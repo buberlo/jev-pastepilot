@@ -26,6 +26,7 @@ describe("Mac Settings source", () => {
     expect(app).toContain("WindowGroup(\"PastePilot\")");
     expect(app).toContain("Settings");
     expect(web).toContain("WKWebView");
+    expect(web).toContain("mailto");
     expect(server).toContain("TYPESAFE_API_KEY");
     expect(server).toContain("PASTEPILOT_READY");
     expect(server).toContain("127.0.0.1");

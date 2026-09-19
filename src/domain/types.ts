@@ -14,13 +14,30 @@ export type DecisionStatus = "select" | "clarify" | "abstain";
 export type DecisionProviderId = "mock" | "local" | "jev";
 
 export const TOOL_IDS = [
-  "open_log_viewer",
-  "search_docs",
   "open_url",
+  "search_web",
+  "search_docs",
+  "search_wikipedia",
+  "search_error",
+  "search_stack_overflow",
+  "open_log_viewer",
+  "open_maps",
+  "open_github",
+  "draft_email",
+  "draft_message",
   "draft_event",
+  "copy_to_clipboard",
+  "extract_urls",
+  "format_json",
+  "summarize_locally",
   "capture_task",
   "capture_idea",
   "save_note",
+  "save_markdown",
+  "save_code_snippet",
+  "save_quote",
+  "save_link",
+  "create_checklist",
 ] as const;
 
 export type ToolId = (typeof TOOL_IDS)[number];
@@ -102,15 +119,23 @@ export type ExecutionReason =
   | "no_url"
   | "empty"
   | "save_failed"
-  | "open_blocked";
+  | "open_blocked"
+  | "no_query"
+  | "invalid_json"
+  | "copy_failed"
+  | "download_failed";
 
 export type ExecutionEffect = {
-  type: "open_url" | "save_local" | "stub";
+  type: "open_url" | "save_local" | "copy" | "download" | "stub";
   url?: string;
   path?: string;
   count?: number;
   downloaded?: boolean;
   toolId?: string;
+  text?: string;
+  filename?: string;
+  content?: string;
+  mime?: string;
   entry?: { toolId: string; text: string; savedAt: string };
 };
 

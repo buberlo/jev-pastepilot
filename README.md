@@ -80,11 +80,17 @@ Confirm is required. After the execution gate:
 
 | Action | What Confirm does |
 | --- | --- |
-| **Open link** | Opens the first parsed `http`/`https` URL. Other schemes and URLs with passwords are blocked. |
-| **Save idea / Save as task / Save note** | Appends to a local inbox (`.local/pastepilot/inbox.md` under `npm run dev`, or a download). `PASTEPILOT_DATA_DIR` overrides the folder. |
-| **Everything else** | Local stub (draft event, log viewer, search docs). |
+| **Open link / GitHub** | Opens the first parsed `http`/`https` URL (GitHub hosts only for **Open GitHub**). Other schemes and URLs with passwords are blocked. |
+| **Search the web / docs / error / Stack Overflow / Wikipedia / maps** | Opens an `http(s)` search or maps URL (DuckDuckGo, Stack Overflow, Wikipedia, Google Maps). |
+| **Draft email** | Opens a `mailto:` draft. Nothing is sent. |
+| **Draft event** | Downloads an `.ics` draft (or writes it under the local data dir). Nothing is scheduled. |
+| **Copy text / Draft message / Extract links** | Copies text or parsed links after Confirm. |
+| **Format JSON / Open log viewer** | Saves a local `.json` or `.log` file. |
+| **Save idea / task / note / markdown / code / quote / link / checklist / for later** | Appends to a local inbox (`.local/pastepilot/inbox.md` under `npm run dev`, or a download). `PASTEPILOT_DATA_DIR` overrides the folder. |
 
-Confirm never sends email, writes a calendar, or calls an external API. Opening the URL you confirmed is the only network step.
+The allowlist is about two dozen tools. The UI still shows **at most three** buttons. Confirm never sends email, writes a calendar, or calls an external API. Opening the URL you confirmed is the only network step.
+
+**Catalogue (Jev Choice labels):** Open link, Search the web, Search docs, Search Wikipedia, Search this error, Search Stack Overflow, Open log viewer, Open maps, Open GitHub, Draft email, Draft message, Draft event, Copy text, Extract links, Format JSON, Save for later, Save as task, Save idea, Save note, Save markdown, Save code, Save quote, Save link, Save checklist.
 
 ## Decision layer (optional live Jev)
 
@@ -132,7 +138,7 @@ Details: [macos/README.md](macos/README.md).
 | **MS2** — parsers, allowlisted actions, replaceable router, failure paths | Done |
 | **Share** — URL ingest + Mac Quick Action / Shortcuts | Done |
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
-| **Confirm tools** — open allowlisted http(s); save idea/task/note locally | Done |
+| **Confirm tools** — open http(s)/mailto/maps search; save locally; copy; download `.ics`/`.md`/`.json` | Done |
 | **Mac Settings** — SwiftUI Settings + Keychain (`⌘,`) | Done |
 | **Mac v1** — in-app UI (WKWebView) + bundled local server + Services → app window | Done (ad-hoc, not notarized) |
 | **Release CI** — every `main` push rebuilds unsigned [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) | Done |
@@ -144,7 +150,7 @@ See [docs/MVP.md](docs/MVP.md).
 
 - Clipboard access is explicit. No background monitoring.
 - Pasted text is untrusted data. It cannot grant new permissions.
-- Routing does not send, schedule, or write anything. Confirm may open one allowlisted http(s) link or append to a local file — never email or calendar.
+- Routing does not send, schedule, or write anything. Confirm may open an allowlisted http(s) or mailto draft, copy text, or write a local file — never send email or schedule a calendar event.
 - Exact values (dates, URLs, emails) are parsed in code, separate from “what kind of text is this?”
 - Provider keys stay server-side (or in the Mac Keychain for Settings). Never commit them. Never log `TYPESAFE_API_KEY`. Never put the key on `/?text=`.
 
@@ -163,7 +169,7 @@ See [docs/MVP.md](docs/MVP.md).
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, local save, UI smoke |
+| `npm test` | Parsers, routing, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, Confirm adapters, local save/export, UI smoke |
 | `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side, Mac workflow only |
 | GitHub Actions `Mac release` | Bundles the Vite UI + Node server, builds `macos/PastePilotService` on `macos-latest`, publishes `PastePilot-mac.zip` |
 

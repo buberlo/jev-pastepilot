@@ -180,6 +180,66 @@
         "action_id": null
       },
       "notes": "Choice confidence between low and high. Code prefers clarify."
+    },
+    {
+      "id": "url",
+      "input": "https://example.com/docs",
+      "state": {},
+      "available_actions": [
+        "open_url",
+        "save_note",
+        "search_web"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "open_url"
+      },
+      "notes": ""
+    },
+    {
+      "id": "ordinary",
+      "input": "The garden is quieter after rain.",
+      "state": {},
+      "available_actions": [
+        "save_note",
+        "capture_idea",
+        "search_web"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "save_note"
+      },
+      "notes": "Ordinary text should select a useful local tool, not an empty state."
+    },
+    {
+      "id": "json",
+      "input": "{\"service\":\"pastepilot\",\"ok\":true}",
+      "state": {},
+      "available_actions": [
+        "format_json",
+        "save_note",
+        "open_log_viewer"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "format_json"
+      },
+      "notes": ""
+    },
+    {
+      "id": "github",
+      "input": "https://github.com/buberlo/jev-pastepilot",
+      "state": {},
+      "available_actions": [
+        "open_github",
+        "open_url",
+        "save_link"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "open_github"
+      },
+      "notes": ""
     }
   ]
 }

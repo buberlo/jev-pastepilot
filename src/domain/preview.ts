@@ -1,5 +1,8 @@
 import { parseFacts } from "./parsers";
-import { toolLabel, TOOLS } from "./tools";
+import { isLocalSaveTool } from "./saveLocal";
+import { isSearchOpenTool } from "./searchLinks";
+import { collapsedText, firstGithubUrl } from "./signals";
+import { toolLabel } from "./tools";
 import type { ActionPreview, ToolId } from "./types";
 
 export function buildPreview(
@@ -8,7 +11,7 @@ export function buildPreview(
   stateVersion: string,
 ): ActionPreview {
   const parsed = parseFacts(input);
-  const snippet = collapse(input, 180);
+  const snippet = collapsedText(input, 180);
   const facts: string[] = [];
 
   if (parsed.urls.length > 0) {
@@ -28,6 +31,13 @@ export function buildPreview(
       facts.push("No date found — draft without a time.");
     }
   }
+  if (toolId === "open_github") {
+    const github = firstGithubUrl(parsed.urls);
+    facts.push(github ? `GitHub: ${github}` : "No GitHub link — Confirm opens a GitHub search.");
+  }
+  if (toolId === "format_json") {
+    facts.push("Pretty-print only runs if the paste is valid JSON.");
+  }
   if (snippet) {
     facts.push(`Text: ${snippet}`);
   }
@@ -45,16 +55,29 @@ function previewSummary(toolId: ToolId): string {
   if (toolId === "open_url") {
     return "Confirm will open the first http or https link in your browser. Other schemes are blocked.";
   }
-  if (toolId === "capture_idea" || toolId === "capture_task" || toolId === "save_note") {
+  if (isSearchOpenTool(toolId)) {
+    return "Confirm will open an http(s) search or maps page. Nothing is typed into other apps.";
+  }
+  if (toolId === "draft_email") {
+    return "Confirm will open a mailto: draft. Nothing is sent.";
+  }
+  if (toolId === "draft_event") {
+    return "Confirm will download an .ics draft. Nothing is sent, scheduled, or written to a calendar.";
+  }
+  if (toolId === "copy_to_clipboard" || toolId === "draft_message" || toolId === "extract_urls") {
+    return "Confirm will copy text to the clipboard. Nothing is sent or scheduled.";
+  }
+  if (toolId === "format_json") {
+    return "Confirm will pretty-print JSON and save a local .json file. Nothing is sent.";
+  }
+  if (toolId === "open_log_viewer") {
+    return "Confirm will save the paste as a local .log file. Nothing is sent.";
+  }
+  if (isLocalSaveTool(toolId)) {
+    if (toolId === "summarize_locally") {
+      return "Confirm will append this text to a local inbox. PastePilot does not generate a summary.";
+    }
     return "Confirm will append this text to a local inbox file. Nothing is emailed or scheduled.";
   }
-  return `${TOOLS[toolId].description} Still a local stub — Nothing is sent, scheduled, or written externally.`;
-}
-
-function collapse(input: string, max: number): string {
-  const text = input.trim().replace(/\s+/g, " ");
-  if (!text) {
-    return "";
-  }
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  return "Confirm is required. Nothing is sent, scheduled, or written externally.";
 }

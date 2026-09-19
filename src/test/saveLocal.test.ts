@@ -9,11 +9,14 @@ import {
   formatInboxMarkdown,
   isLocalSaveTool,
 } from "../domain/saveLocal";
+import { runExport } from "../server/export";
 import { appendLocalSave, runSave } from "../server/save";
 
 describe("local save records", () => {
   it("builds idea, task, and note entries and rejects empty or unwired tools", () => {
     expect(isLocalSaveTool("capture_idea")).toBe(true);
+    expect(isLocalSaveTool("save_markdown")).toBe(true);
+    expect(isLocalSaveTool("create_checklist")).toBe(true);
     expect(isLocalSaveTool("open_url")).toBe(false);
     expect(isLocalSaveTool("draft_event")).toBe(false);
     expect(buildLocalSaveEntry("capture_idea", "  An app that kits.  ")?.text).toBe(
@@ -114,6 +117,26 @@ describe("POST /api/save handler", () => {
     expect(await runSave(JSON.stringify({ toolId: "open_url", text: "https://example.com" }), { dataDir })).toEqual({
       status: 400,
       body: { error: "unknown_tool" },
+    });
+  });
+});
+
+describe("POST /api/export handler", () => {
+  it("writes an allowlisted filename and rejects path tricks", async () => {
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), "pastepilot-export-"));
+    const ok = await runExport(
+      JSON.stringify({ filename: "pastepilot-draft.ics", content: "BEGIN:VCALENDAR\nEND:VCALENDAR\n" }),
+      { dataDir },
+    );
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ ok: true });
+    expect(await runExport(JSON.stringify({ filename: "../secret.ics", content: "x" }), { dataDir })).toEqual({
+      status: 400,
+      body: { error: "bad_filename" },
+    });
+    expect(await runExport(JSON.stringify({ filename: "pastepilot.exe", content: "x" }), { dataDir })).toEqual({
+      status: 400,
+      body: { error: "bad_filename" },
     });
   });
 });

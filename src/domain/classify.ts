@@ -1,4 +1,5 @@
 import { parseFacts } from "./parsers";
+import { looksLikeAddress, looksLikeCode, looksLikeJson } from "./signals";
 import type { ContentKind } from "./types";
 
 const INJECTION_RE =
@@ -38,7 +39,11 @@ export function classify(input: string): InternalKind {
     MEETING_RE.test(trimmed) ||
     IDEA_RE.test(trimmed) ||
     TASK_RE.test(trimmed) ||
-    facts.urls.length > 0;
+    facts.urls.length > 0 ||
+    facts.emails.length > 0 ||
+    looksLikeJson(trimmed) ||
+    looksLikeAddress(trimmed) ||
+    looksLikeCode(trimmed);
 
   if (words.length <= 3 && !strong) {
     return "ambiguous";
