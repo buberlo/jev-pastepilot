@@ -273,7 +273,7 @@
     },
     {
       "id": "mac-reminder",
-      "input": "TODO: buy milk after the meeting",
+      "input": "TODO: buy milk after dinner",
       "state": {},
       "available_actions": [
         "capture_task",
