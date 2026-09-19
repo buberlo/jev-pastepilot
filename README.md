@@ -146,6 +146,29 @@ A slice is done when you can reproduce it with the commands above. See [docs/MVP
 
 These checks do not measure live-model accuracy. They do not contact TypeSafe unless you set `TYPESAFE_API_KEY` and run the skipped live E2E.
 
+## Shared decision core (`@buberlo/jev-core`)
+
+`@buberlo/jev-core` is the harness-independent TypeSafe Jev decision core extracted from this author's DSH work ([buberlo/dsh-jev](https://github.com/buberlo/dsh-jev)). It turns state plus typed questions — Choice, Score and Noul — into typed answers and probabilities that deterministic code turns into consequences.
+
+```sh
+npm install @buberlo/jev-core@0.1.1
+```
+
+Requires Node `^22.19.0 || >=24.0.0`. `MockJevProvider` is the offline alternative: deterministic answers for tests without an API key.
+
+**How it applies here:**
+
+- `evaluate` with a `choice` over the allowlisted tool catalogue and a `score` for fit; `noul` flags injection suspicion and empty or unclear pastes.
+- `selectTools` bounds the candidate list to that allowlist, and `assessToolCall` can hold or ask at the Confirm gate.
+- Consequences stay deterministic application code: URL/date/email parsing, allowlist checks, `stateVersion`, opening the parsed http(s) link, and appending to the local inbox.
+
+**Rules:**
+
+- A model answer only selects or gates; it never grants permission or executes anything. Confirm still gates every open and local save.
+- Provider, timeout or validation failures fall back to the manual tool list or ask — never to auto-execution.
+- Modes are `off` / `shadow` / `enforce`; start with `MockJevProvider` and `shadow`.
+- Thresholds are uncalibrated defaults until measured against your own data: [docs/policy.md](https://github.com/buberlo/dsh-jev/blob/main/docs/policy.md).
+
 ## Licence
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE).
