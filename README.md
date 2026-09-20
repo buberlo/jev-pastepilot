@@ -24,6 +24,21 @@ Paste or share some text. Get at most three actions. Confirm before anything hap
 
 ![Same Finder buttons with ?provider=jev](docs/demo/path-jev-finder-buttons.png)
 
+**More paste → action coverage.** A URL, email, address, or phone now surfaces the matching three buttons. Confirm is still required. On Linux these recordings show the suggestion UI and labeled Mac fallbacks (Finder / Mail / Maps / Phone open for real only in the Mac app).
+
+<video src="docs/demo/mac-tools-confirm-flows.mp4" controls playsinline muted width="720" title="PastePilot: URL, email, Maps, Finder, and phone Confirm flows">
+</video>
+
+![URL paste — Open link, Open in Safari, Open in Chrome](docs/demo/url-browser-tools.png)
+
+![Email paste — Draft email, Copy text, Save note](docs/demo/email-draft-tools.png)
+
+![Address paste — Open in Maps](docs/demo/address-maps-tools.png)
+
+![Path paste still offers Open in Finder](docs/demo/path-finder-still-works.png)
+
+![Phone paste — Call number, Message number, Save contact](docs/demo/phone-call-tools.png)
+
 ## What it is
 
 A small launcher, **not a chatbot**.
