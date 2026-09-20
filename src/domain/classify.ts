@@ -3,8 +3,11 @@ import {
   looksLikeAddress,
   looksLikeCode,
   looksLikeDictionaryWord,
+  looksLikeEmailPaste,
   looksLikeFilePath,
   looksLikeJson,
+  looksLikePhonePaste,
+  looksLikeUrlPaste,
 } from "./signals";
 import type { ContentKind } from "./types";
 
@@ -29,6 +32,20 @@ export function isInjection(input: string): boolean {
   return INJECTION_RE.test(input);
 }
 
+/**
+ * Strong date-ish meeting: an ISO date plus a time or meeting word.
+ * Ordinary “morgen / tomorrow” meeting notes stay on the mock KIND_TOOLS path.
+ */
+export function looksLikeMeetingPaste(input: string): boolean {
+  const trimmed = input.trim();
+  if (!trimmed || isInjection(trimmed) || LOG_RE.test(trimmed)) {
+    return false;
+  }
+  const facts = parseFacts(trimmed);
+  const hasIso = facts.dateHints.some((hint) => /^\d{4}-\d{2}-\d{2}$/.test(hint));
+  return hasIso && (facts.times.length > 0 || MEETING_RE.test(trimmed));
+}
+
 export function classify(input: string): InternalKind {
   const trimmed = input.trim();
   if (!trimmed) {
@@ -47,11 +64,14 @@ export function classify(input: string): InternalKind {
     TASK_RE.test(trimmed) ||
     facts.urls.length > 0 ||
     facts.emails.length > 0 ||
+    facts.phones.length > 0 ||
     looksLikeJson(trimmed) ||
     looksLikeAddress(trimmed) ||
     looksLikeCode(trimmed) ||
     looksLikeFilePath(trimmed) ||
-    looksLikeDictionaryWord(trimmed);
+    looksLikeDictionaryWord(trimmed) ||
+    looksLikePhonePaste(trimmed) ||
+    looksLikeEmailPaste(trimmed);
 
   if (words.length <= 3 && !strong) {
     return "ambiguous";
@@ -62,7 +82,7 @@ export function classify(input: string): InternalKind {
   if (MEETING_RE.test(trimmed)) {
     return "meeting";
   }
-  if (isMostlyUrl(trimmed, facts.urls)) {
+  if (looksLikeUrlPaste(trimmed) || isMostlyUrl(trimmed, facts.urls)) {
     return "url";
   }
   if (IDEA_RE.test(trimmed)) {

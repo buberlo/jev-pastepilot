@@ -147,6 +147,7 @@ struct PastePilotWebView: NSViewRepresentable {
                 "http", "https", "mailto",
                 "dict", "notes", "mobilenotes", "shortcuts",
                 "x-apple-reminder", "x-apple-reminderkit", "ical",
+                "tel", "sms", "maps",
             ]
             return allowed.contains(scheme)
         }

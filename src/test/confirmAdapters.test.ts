@@ -2,7 +2,7 @@ import { confirmExecution } from "../domain/execute";
 import { buildMailtoUrl, buildIcsDraft } from "../domain/drafts";
 import { parseFacts } from "../domain/parsers";
 import { buildPreview } from "../domain/preview";
-import { urlForSearchTool } from "../domain/searchLinks";
+import { mapsWebUrl, urlForSearchTool } from "../domain/searchLinks";
 import { asChecklist, looksLikeJson, prettyJson } from "../domain/signals";
 
 function confirm(toolId: Parameters<typeof buildPreview>[0], input: string) {
@@ -28,7 +28,7 @@ describe("search and maps adapters", () => {
     expect(urlForSearchTool("search_stack_overflow", error, parsed)).toMatch(
       /^https:\/\/stackoverflow\.com\/search\?q=/,
     );
-    expect(urlForSearchTool("open_maps", "221B Baker Street, London", parseFacts(""))).toMatch(
+    expect(mapsWebUrl("221B Baker Street, London")).toMatch(
       /^https:\/\/www\.google\.com\/maps\/search\//,
     );
     expect(
@@ -54,6 +54,16 @@ describe("search and maps adapters", () => {
 });
 
 describe("draft adapters", () => {
+  it("treats Open in Maps as a Mac action with a Google Maps fallback", () => {
+    const result = confirm("open_maps", "221B Baker Street, London");
+    expect(result.ok).toBe(true);
+    expect(result.effect?.type).toBe("mac_action");
+    expect(result.effect?.toolId).toBe("open_maps");
+    expect(result.effect?.fallback?.type).toBe("open_url");
+    expect(result.effect?.fallback?.url).toMatch(/^https:\/\/www\.google\.com\/maps\//);
+    expect(result.effect?.url).toMatch(/^maps:/);
+  });
+
   it("builds a mailto draft and never treats Confirm as send", () => {
     const input = "Please send this to ada@example.com tomorrow";
     const url = buildMailtoUrl(input, parseFacts(input));

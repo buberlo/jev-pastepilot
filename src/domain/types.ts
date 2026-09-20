@@ -50,6 +50,18 @@ export const TOOL_IDS = [
   "run_shortcut",
   "speak_text",
   "share_text",
+  "open_in_editor",
+  "save_to_desktop",
+  "save_to_downloads",
+  "reveal_downloads",
+  "reveal_desktop",
+  "reveal_documents",
+  "open_in_preview",
+  "call_phone",
+  "message_phone",
+  "copy_posix_path",
+  "open_enclosing_folder",
+  "save_contact",
   "screen_paste",
 ] as const;
 
@@ -68,6 +80,7 @@ export type ParsedFacts = {
   dateHints: string[];
   times: string[];
   emails: string[];
+  phones: string[];
 };
 
 export type DecisionRequest = {
@@ -134,6 +147,7 @@ export type ExecutionReason =
   | "save_failed"
   | "open_blocked"
   | "no_query"
+  | "no_path"
   | "invalid_json"
   | "copy_failed"
   | "download_failed"
@@ -163,6 +177,7 @@ export type ExecutionEffect = {
   content?: string;
   mime?: string;
   query?: string;
+  folder?: string;
   summary?: string;
   fallback?: MacActionFallback;
   entry?: { toolId: string; text: string; savedAt: string };

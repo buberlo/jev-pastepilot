@@ -1,11 +1,15 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { homedir } from "node:os";
+import nodePath from "node:path";
+import { writeFile, mkdir, access } from "node:fs/promises";
 import {
   appleString,
   dictUrl,
   isMacActionTool,
   macActionMessage,
   readMacSettings,
+  safeNoteFilename,
   shortcutsRunUrl,
   type MacActionToolId,
 } from "../domain/macActions.ts";
@@ -73,6 +77,8 @@ export async function executeMacAction(
     path?: string;
     query?: string;
     content?: string;
+    filename?: string;
+    folder?: string;
   },
   options: {
     runner?: MacCommandRunner;
@@ -232,8 +238,146 @@ export async function executeMacAction(
     return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
   }
 
+  if (toolId === "open_maps") {
+    const query = (input.query || text).trim();
+    if (!query) {
+      return { ok: false, error: "no_query" };
+    }
+    const opened = await tryRun(() => runner.open([`maps:?q=${encodeURIComponent(query)}`]));
+    if (!opened) {
+      await tryRun(() =>
+        runner.open([`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`]),
+      );
+    }
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
+  if (toolId === "open_in_editor") {
+    const settings = readMacSettings(options.env ?? process.env);
+    const app =
+      settings.preferredEditor === "vscode"
+        ? "Visual Studio Code"
+        : settings.preferredEditor === "textedit"
+          ? "TextEdit"
+          : "Cursor";
+    const pathArg = input.path || firstFilePath(text);
+    if (pathArg) {
+      const opened = await tryRun(() => runner.open(["-a", app, pathArg]));
+      if (!opened) {
+        await tryRun(() => runner.open(["-a", "TextEdit", pathArg]));
+      }
+      return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+    }
+    if (!text) {
+      return { ok: false, error: "empty" };
+    }
+    const saved = await writeExportFile(input.filename || safeNoteFilename(text, "txt"), `${text}\n`, {
+      dataDir: options.dataDir ?? resolveDataDir(),
+    });
+    if ("error" in saved) {
+      return { ok: false, error: saved.error };
+    }
+    const opened = await tryRun(() => runner.open(["-a", app, saved.path]));
+    if (!opened) {
+      await tryRun(() => runner.open(["-a", "TextEdit", saved.path]));
+    }
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
+  if (toolId === "save_to_desktop" || toolId === "save_to_downloads") {
+    if (!text) {
+      return { ok: false, error: "empty" };
+    }
+    const dest =
+      toolId === "save_to_desktop"
+        ? nodePath.join(homedir(), "Desktop")
+        : nodePath.join(homedir(), "Downloads");
+    await mkdir(dest, { recursive: true });
+    const name = input.filename || safeNoteFilename(text, "txt");
+    const file = await uniquePath(nodePath.join(dest, name));
+    await writeFile(file, `${text}\n`, "utf8");
+    await tryRun(() => runner.open(["-R", file]));
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
+  if (toolId === "reveal_downloads" || toolId === "reveal_desktop" || toolId === "reveal_documents") {
+    const dest =
+      toolId === "reveal_downloads"
+        ? nodePath.join(homedir(), "Downloads")
+        : toolId === "reveal_desktop"
+          ? nodePath.join(homedir(), "Desktop")
+          : nodePath.join(homedir(), "Documents");
+    await tryRun(() => runner.open([dest]));
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
+  if (toolId === "open_in_preview") {
+    const pathArg = input.path || firstFilePath(text);
+    if (!pathArg) {
+      return { ok: false, error: "no_path" };
+    }
+    const opened = await tryRun(() => runner.open(["-a", "Preview", pathArg]));
+    if (!opened) {
+      return { ok: false, error: "mac_failed" };
+    }
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
+  if (toolId === "call_phone" || toolId === "message_phone") {
+    const href = input.url?.trim();
+    if (!href || !/^(tel|sms):/i.test(href)) {
+      return { ok: false, error: "no_query" };
+    }
+    await tryRun(() => runner.open([href]));
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
+  if (toolId === "open_enclosing_folder") {
+    const pathArg = input.path || firstFilePath(text);
+    if (!pathArg) {
+      return { ok: false, error: "no_path" };
+    }
+    const parent = pathArg.replace(/[/\\][^/\\]+$/, "") || pathArg;
+    await tryRun(() => runner.open([parent]));
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
+  if (toolId === "save_contact") {
+    const content = (input.content || "").trim();
+    if (!content.includes("BEGIN:VCARD")) {
+      return { ok: false, error: "empty" };
+    }
+    const saved = await writeExportFile(input.filename || "pastepilot-contact.vcf", content, {
+      dataDir: options.dataDir ?? resolveDataDir(),
+    });
+    if ("error" in saved) {
+      return { ok: false, error: saved.error };
+    }
+    await tryRun(() => runner.open([saved.path]));
+    return { ok: true, used: "mac", message: macActionMessage(toolId, "mac") };
+  }
+
   await tryRun(() => runner.notify("PastePilot", "Text copied. Share from another app if you want."));
   return { ok: true, used: "mac", message: macActionMessage("share_text", "mac") };
+}
+
+async function uniquePath(file: string): Promise<string> {
+  try {
+    await access(file);
+  } catch {
+    return file;
+  }
+  const ext = nodePath.extname(file);
+  const stem = file.slice(0, file.length - ext.length);
+  for (let index = 2; index < 100; index += 1) {
+    const next = `${stem}-${index}${ext}`;
+    try {
+      await access(next);
+    } catch {
+      return next;
+    }
+  }
+  return `${stem}-${Date.now()}${ext}`;
 }
 
 /**
@@ -269,11 +413,13 @@ export async function runMacAction(
   const path = typeof parsed.path === "string" ? parsed.path : undefined;
   const query = typeof parsed.query === "string" ? parsed.query : undefined;
   const content = typeof parsed.content === "string" ? parsed.content : undefined;
+  const filename = typeof parsed.filename === "string" ? parsed.filename : undefined;
+  const folder = typeof parsed.folder === "string" ? parsed.folder : undefined;
 
   try {
     const result = await executeMacAction(
       parsed.toolId,
-      { text, url, path, query, content },
+      { text, url, path, query, content, filename, folder },
       options,
     );
     if (!result.ok) {

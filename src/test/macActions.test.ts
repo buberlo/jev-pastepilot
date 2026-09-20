@@ -82,8 +82,10 @@ describe("Mac signals and payloads", () => {
     expect(appleString('say "hi"')).toBe('say \\"hi\\"');
     expect(readMacSettings({ PASTEPILOT_PREFERRED_BROWSER: "chrome", PASTEPILOT_SHORTCUT_NAME: "Send to Notes" })).toEqual({
       preferredBrowser: "chrome",
+      preferredEditor: "cursor",
       shortcutName: "Send to Notes",
     });
+    expect(readMacSettings({ PASTEPILOT_PREFERRED_EDITOR: "vscode" }).preferredEditor).toBe("vscode");
   });
 
   it("requires Confirm and never auto-runs Mac tools", () => {
@@ -97,6 +99,44 @@ describe("Mac signals and payloads", () => {
     expect(result.effect?.toolId).toBe("open_in_notes");
     expect(confirm("open_in_safari", "no link here").reason).toBe("no_url");
     expect(confirm("dictionary_lookup", "???").reason).toBe("no_query");
+    expect(confirm("open_in_preview", "/Users/ada/notes.md").reason).toBe("no_path");
+    expect(confirm("call_phone", "no number").reason).toBe("no_query");
+  });
+
+  it("builds Maps, phone, editor, Desktop, and contact payloads", () => {
+    const maps = buildMacActionPayload("open_maps", "221B Baker Street, London");
+    expect("error" in maps).toBe(false);
+    if (!("error" in maps)) {
+      expect(maps.url).toMatch(/^maps:/);
+      expect(maps.fallback.type).toBe("open_url");
+    }
+    const call = buildMacActionPayload("call_phone", "+1 415 555 2671");
+    expect("error" in call).toBe(false);
+    if (!("error" in call)) {
+      expect(call.url).toMatch(/^tel:/);
+    }
+    const editor = buildMacActionPayload("open_in_editor", "function greet() {\n  return 1;\n}");
+    expect("error" in editor).toBe(false);
+    if (!("error" in editor)) {
+      expect(editor.filename).toMatch(/\.md$/);
+      expect(editor.fallback.type).toBe("download");
+    }
+    const desktop = buildMacActionPayload("save_to_desktop", "Garden notes");
+    expect("error" in desktop).toBe(false);
+    if (!("error" in desktop)) {
+      expect(desktop.folder).toBe("desktop");
+      expect(desktop.fallback.type).toBe("download");
+    }
+    const contact = buildMacActionPayload("save_contact", "+1 415 555 2671");
+    expect("error" in contact).toBe(false);
+    if (!("error" in contact)) {
+      expect(contact.fallback.type).toBe("download");
+      expect(contact.fallback.filename).toMatch(/\.vcf$/);
+    }
+    expect(confirm("copy_posix_path", "/Users/ada/Documents/notes.md").effect).toEqual({
+      type: "copy",
+      text: "/Users/ada/Documents/notes.md",
+    });
   });
 
   it("screens a paste locally without a write", () => {

@@ -10,6 +10,8 @@ enum AppSettings {
     static let providers = ["mock", "local", "jev"]
     static let defaultPreferredBrowser = "default"
     static let browsers = ["default", "safari", "chrome"]
+    static let defaultPreferredEditor = "cursor"
+    static let editors = ["cursor", "vscode", "textedit"]
     static let defaultShortcutName = ""
 
     static var dataDirectory: URL {
@@ -52,6 +54,28 @@ enum AppSettings {
         set {
             let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             defaults.set(browsers.contains(trimmed) ? trimmed : defaultPreferredBrowser, forKey: "preferredBrowser")
+        }
+    }
+
+    static var preferredEditor: String {
+        get {
+            let value = defaults.string(forKey: "preferredEditor")?.lowercased()
+            return editors.contains(value ?? "") ? value! : defaultPreferredEditor
+        }
+        set {
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            defaults.set(editors.contains(trimmed) ? trimmed : defaultPreferredEditor, forKey: "preferredEditor")
+        }
+    }
+
+    static var preferredEditorBundleId: String {
+        switch preferredEditor {
+        case "vscode":
+            return "com.microsoft.VSCode"
+        case "textedit":
+            return "com.apple.TextEdit"
+        default:
+            return "com.todesktop.230313mzl4w4u92"
         }
     }
 

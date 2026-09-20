@@ -8,7 +8,6 @@ export const SEARCH_OPEN_TOOLS = [
   "search_wikipedia",
   "search_error",
   "search_stack_overflow",
-  "open_maps",
   "open_github",
 ] as const;
 
@@ -20,6 +19,16 @@ export function isSearchOpenTool(id: string): id is SearchOpenToolId {
 
 function duckDuckGo(query: string): string {
   return `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+}
+
+/** Google Maps search. Used on web/Linux and as the Mac fallback. */
+export function mapsWebUrl(query: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+/** Apple Maps URL scheme. Opened by Swift after Confirm. */
+export function appleMapsUrl(query: string): string {
+  return `maps:?q=${encodeURIComponent(query)}`;
 }
 
 /**
@@ -52,11 +61,9 @@ export function urlForSearchTool(
           ? duckDuckGo(query)
           : toolId === "search_stack_overflow"
             ? `https://stackoverflow.com/search?q=${encodeURIComponent(query)}`
-            : toolId === "open_maps"
-              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
-              : toolId === "search_wikipedia"
-                ? `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(query)}`
-                : `https://github.com/search?q=${encodeURIComponent(query)}`;
+            : toolId === "search_wikipedia"
+              ? `https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(query)}`
+              : `https://github.com/search?q=${encodeURIComponent(query)}`;
 
   return allowlistedHttpUrl(raw);
 }

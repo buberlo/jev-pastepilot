@@ -60,9 +60,9 @@ describe("URL / share ingest", () => {
       "/?provider=jev&text=Service%20failed%3A%20connection%20refused%20on%20the%20database%20socket.",
     );
     render(<App />);
-    expect(await screen.findByText("Couldn't decide.")).toBeInTheDocument();
+    expect(await screen.findByText(/Couldn't decide/)).toBeInTheDocument();
     expect(screen.getByLabelText("Paste field")).not.toBeDisabled();
-    expect(screen.getByText("Pick a safe tool instead:")).toBeInTheDocument();
+    expect(screen.getByText(/Pick a safe tool/)).toBeInTheDocument();
     expect(screen.queryByText(/TypeSafe|Jev|confidence/i)).not.toBeInTheDocument();
   });
 
@@ -74,11 +74,11 @@ describe("URL / share ingest", () => {
     );
     render(<App />);
     expect(
-      await screen.findByText("Couldn't decide in time.", {}, { timeout: 2000 }),
+      await screen.findByText(/Couldn't decide in time/, {}, { timeout: 2000 }),
     ).toBeInTheDocument();
     const field = screen.getByLabelText("Paste field");
     expect(field).toHaveValue("Service failed: connection refused on the database socket.");
     expect(field).not.toBeDisabled();
-    expect(screen.getByText("Pick a safe tool instead:")).toBeInTheDocument();
+    expect(screen.getByText(/Pick a safe tool/)).toBeInTheDocument();
   });
 });

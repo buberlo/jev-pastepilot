@@ -5,7 +5,7 @@ import { parseFacts } from "./parsers";
 import { screenPaste } from "./screenPaste";
 import { buildLocalSaveEntry, isLocalSaveTool, type LocalSaveEntry } from "./saveLocal";
 import { isSearchOpenTool, urlForSearchTool } from "./searchLinks";
-import { prettyJson } from "./signals";
+import { firstFilePath, prettyJson } from "./signals";
 import { isToolId, toolLabel } from "./tools";
 import type { ActionPreview, ExecutionResult, MacActionFallback, ToolId } from "./types";
 
@@ -51,6 +51,8 @@ export type MacActionEffect = {
   url?: string;
   path?: string;
   query?: string;
+  filename?: string;
+  folder?: string;
   fallback: MacActionFallback;
 };
 
@@ -141,10 +143,10 @@ export function confirmExecution(args: ConfirmArgs): ExecutionResult {
     };
   }
 
-  if (toolId === "copy_to_clipboard" || toolId === "draft_message") {
-    const text = input.trim();
+  if (toolId === "copy_to_clipboard" || toolId === "draft_message" || toolId === "copy_posix_path") {
+    const text = toolId === "copy_posix_path" ? (firstFilePath(input) ?? "") : input.trim();
     if (!text) {
-      return fail("empty", "Nothing to copy. Confirm was ignored.");
+      return fail(toolId === "copy_posix_path" ? "no_path" : "empty", "Nothing to copy. Confirm was ignored.");
     }
     return {
       ok: true,
@@ -243,13 +245,20 @@ export function confirmExecution(args: ConfirmArgs): ExecutionResult {
   if (isMacActionTool(toolId)) {
     const payload = buildMacActionPayload(toolId, input, parsed);
     if ("error" in payload) {
-      const reason = payload.error === "empty" ? "empty" : payload.error;
+      const reason =
+        payload.error === "empty"
+          ? "empty"
+          : payload.error === "no_path"
+            ? "no_path"
+            : payload.error;
       const message =
         payload.error === "no_url"
           ? "No http(s) link to open. Confirm was ignored."
           : payload.error === "no_query"
             ? "Nothing to look up. Confirm was ignored."
-            : "Nothing to run. Confirm was ignored.";
+            : payload.error === "no_path"
+              ? "No safe path to open. Confirm was ignored."
+              : "Nothing to run. Confirm was ignored.";
       return fail(reason, message);
     }
     return okMacAction(payload);
@@ -273,6 +282,8 @@ function okMacAction(payload: MacActionPayload): ExecutionResult {
       url: payload.url,
       path: payload.path,
       query: payload.query,
+      filename: payload.filename,
+      folder: payload.folder,
       fallback: payload.fallback,
     },
   };

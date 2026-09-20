@@ -7,6 +7,7 @@ enum MacActions {
     private static let maxText = 4000
     private static let unsafeCharacters = CharacterSet(charactersIn: ";|&`$\n\r")
     private static let synthesizer = NSSpeechSynthesizer()
+    private static var sharingPicker: NSSharingServicePicker?
 
     static func handle(_ raw: Any, reply: @escaping (Any?, String?) -> Void) {
         guard let body = raw as? [String: Any], let toolId = body["toolId"] as? String else {
@@ -18,6 +19,8 @@ enum MacActions {
         let path = string(body["path"])
         let query = string(body["query"])
         let content = string(body["content"])
+        let filename = string(body["filename"])
+        let folder = string(body["folder"])
 
         let result = execute(
             toolId: toolId,
@@ -25,7 +28,9 @@ enum MacActions {
             url: url.isEmpty ? nil : url,
             path: path.isEmpty ? nil : path,
             query: query.isEmpty ? nil : query,
-            content: content.isEmpty ? nil : content
+            content: content.isEmpty ? nil : content,
+            filename: filename.isEmpty ? nil : filename,
+            folder: folder.isEmpty ? nil : folder
         )
         reply(result, nil)
     }
@@ -36,11 +41,15 @@ enum MacActions {
         url: String?,
         path: String?,
         query: String?,
-        content: String?
+        content: String?,
+        filename: String? = nil,
+        folder: String? = nil
     ) -> [String: Any] {
         switch toolId {
         case "reveal_in_finder":
-            return openInFinder(path: path, text: text)
+            return openInFinder(path: path, text: text, enclosingOnly: false)
+        case "open_enclosing_folder":
+            return openInFinder(path: path, text: text, enclosingOnly: true)
         case "open_in_terminal":
             return openInTerminal(path: path, text: text)
         case "open_in_notes":
@@ -63,6 +72,28 @@ enum MacActions {
             return speak(text: text)
         case "share_text":
             return share(text: text)
+        case "open_maps":
+            return openMaps(query: query ?? text)
+        case "open_in_editor":
+            return openInEditor(path: path, text: text, filename: filename)
+        case "save_to_desktop":
+            return saveToFolder(.desktopDirectory, text: text, filename: filename, label: "Desktop")
+        case "save_to_downloads":
+            return saveToFolder(.downloadsDirectory, text: text, filename: filename, label: "Downloads")
+        case "reveal_downloads":
+            return revealSpecialFolder(.downloadsDirectory, label: "Downloads")
+        case "reveal_desktop":
+            return revealSpecialFolder(.desktopDirectory, label: "Desktop")
+        case "reveal_documents":
+            return revealSpecialFolder(.documentDirectory, label: "Documents")
+        case "open_in_preview":
+            return openInPreview(path: path, text: text)
+        case "call_phone":
+            return openScheme(url: url, query: query, scheme: "tel", message: "Opened a tel: link. Nothing was dialed until you confirm in Phone.")
+        case "message_phone":
+            return openScheme(url: url, query: query, scheme: "sms", message: "Opened an sms: draft. Nothing was sent.")
+        case "save_contact":
+            return saveContact(text: text, content: content, filename: filename)
         default:
             return ["ok": false, "error": "unknown_tool"]
         }
@@ -70,9 +101,16 @@ enum MacActions {
 
     // MARK: - Tools
 
-    private static func openInFinder(path: String?, text: String) -> [String: Any] {
+    private static func openInFinder(path: String?, text: String, enclosingOnly: Bool) -> [String: Any] {
         let target = safeFileURL(path) ?? safeFileURL(text) ?? AppSettings.dataDirectory
         try? FileManager.default.createDirectory(at: AppSettings.dataDirectory, withIntermediateDirectories: true)
+        if enclosingOnly {
+            let parent = FileManager.default.fileExists(atPath: target.path)
+                ? (isDirectory(target) ? target.deletingLastPathComponent() : target.deletingLastPathComponent())
+                : target.deletingLastPathComponent()
+            NSWorkspace.shared.open(parent.path.isEmpty ? target : parent)
+            return ok("mac", "Opened the enclosing folder in Finder.")
+        }
         if FileManager.default.fileExists(atPath: target.path) {
             NSWorkspace.shared.activateFileViewerSelecting([target])
         } else {
@@ -90,8 +128,7 @@ enum MacActions {
         let target = safeFileURL(path) ?? safeFileURL(text)
         let directory: URL?
         if let target {
-            var isDir: ObjCBool = false
-            if FileManager.default.fileExists(atPath: target.path, isDirectory: &isDir), isDir.boolValue {
+            if isDirectory(target) {
                 directory = target
             } else {
                 directory = target.deletingLastPathComponent()
@@ -122,7 +159,7 @@ enum MacActions {
         guard !text.isEmpty else {
             return ["ok": false, "error": "empty"]
         }
-        let title = appleString(String(collapsed(text, 80)))
+        let title = appleString(firstLine(text, 80))
         let body = appleString(text)
         let wrote = runAppleScript(
             "tell application \"Notes\" to make new note with properties {name:\"\(title)\", body:\"\(body)\"}"
@@ -137,7 +174,7 @@ enum MacActions {
         guard !text.isEmpty else {
             return ["ok": false, "error": "empty"]
         }
-        let name = appleString(String(collapsed(text, 120)))
+        let name = appleString(firstLine(text, 120))
         let wrote = runAppleScript(
             "tell application \"Reminders\" to make new reminder with properties {name:\"\(name)\"}"
         )
@@ -238,10 +275,140 @@ enum MacActions {
         guard !text.isEmpty else {
             return ["ok": false, "error": "empty"]
         }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-        notify(title: "PastePilot", subtitle: "Text copied. Share from another app if you want.")
-        return ok("mac", "Copied the text and posted a notification. Nothing was sent.")
+        DispatchQueue.main.async {
+            if let view = NSApp.keyWindow?.contentView ?? NSApp.windows.first?.contentView {
+                sharingPicker = NSSharingServicePicker(items: [text])
+                sharingPicker?.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
+            } else {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                notify(title: "PastePilot", subtitle: "Text copied. Share from another app if you want.")
+            }
+        }
+        return ok("mac", "Opened the share sheet. Nothing was sent.")
+    }
+
+    private static func openMaps(query: String) -> [String: Any] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return ["ok": false, "error": "no_query"]
+        }
+        let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trimmed
+        if let url = URL(string: "maps:?q=\(encoded)") {
+            NSWorkspace.shared.open(url)
+            return ok("mac", "Opened the address in Apple Maps.")
+        }
+        return ["ok": false, "error": "mac_failed"]
+    }
+
+    private static func openInEditor(path: String?, text: String, filename: String?) -> [String: Any] {
+        let file: URL
+        if let existing = safeFileURL(path) ?? safeFileURL(text) {
+            file = existing
+        } else if !text.isEmpty {
+            try? FileManager.default.createDirectory(at: AppSettings.dataDirectory, withIntermediateDirectories: true)
+            let name = safeFilename(filename) ?? "pastepilot-note.txt"
+            file = uniqueFile(in: AppSettings.dataDirectory, name: name)
+            do {
+                try text.write(to: file, atomically: true, encoding: .utf8)
+            } catch {
+                return ["ok": false, "error": "mac_failed"]
+            }
+        } else {
+            return ["ok": false, "error": "empty"]
+        }
+
+        let preferred = AppSettings.preferredEditorBundleId
+        let fallbacks = [preferred, "com.apple.TextEdit", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92"]
+        for bundleId in unique(fallbacks) {
+            let opened = NSWorkspace.shared.open(
+                [file],
+                withAppBundleIdentifier: bundleId,
+                options: [],
+                additionalEventParamDescriptor: nil,
+                launchIdentifiers: nil
+            )
+            if opened {
+                return ok("mac", "Opened the text in the preferred editor. Missing apps fall back to TextEdit.")
+            }
+        }
+        NSWorkspace.shared.open(file)
+        return ok("mac", "Opened the text in the preferred editor. Missing apps fall back to TextEdit.")
+    }
+
+    private static func saveToFolder(_ directory: FileManager.SearchPathDirectory, text: String, filename: String?, label: String) -> [String: Any] {
+        guard !text.isEmpty else {
+            return ["ok": false, "error": "empty"]
+        }
+        guard let folder = FileManager.default.urls(for: directory, in: .userDomainMask).first else {
+            return ["ok": false, "error": "mac_failed"]
+        }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let name = safeFilename(filename) ?? "pastepilot-note.txt"
+        let file = uniqueFile(in: folder, name: name)
+        do {
+            try text.write(to: file, atomically: true, encoding: .utf8)
+        } catch {
+            return ["ok": false, "error": "mac_failed"]
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([file])
+        return ok("mac", "Saved a new file on the \(label). Existing files were not overwritten.")
+    }
+
+    private static func revealSpecialFolder(_ directory: FileManager.SearchPathDirectory, label: String) -> [String: Any] {
+        guard let folder = FileManager.default.urls(for: directory, in: .userDomainMask).first else {
+            return ["ok": false, "error": "mac_failed"]
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([folder])
+        return ok("mac", "Opened \(label) in Finder.")
+    }
+
+    private static func openInPreview(path: String?, text: String) -> [String: Any] {
+        guard let target = safeFileURL(path) ?? safeFileURL(text) else {
+            return ["ok": false, "error": "no_path"]
+        }
+        let opened = NSWorkspace.shared.open(
+            [target],
+            withAppBundleIdentifier: "com.apple.Preview",
+            options: [],
+            additionalEventParamDescriptor: nil,
+            launchIdentifiers: nil
+        )
+        if !opened {
+            NSWorkspace.shared.open(target)
+        }
+        return ok("mac", "Opened the file in Preview.")
+    }
+
+    private static func openScheme(url raw: String?, query: String?, scheme: String, message: String) -> [String: Any] {
+        if let raw, let url = URL(string: raw), url.scheme?.lowercased() == scheme {
+            NSWorkspace.shared.open(url)
+            return ok("mac", message)
+        }
+        let digits = (query ?? "").replacingOccurrences(of: "[^0-9+]", with: "", options: .regularExpression)
+        guard digits.filter(\.isNumber).count >= 10, let url = URL(string: "\(scheme):\(digits)") else {
+            return ["ok": false, "error": "no_query"]
+        }
+        NSWorkspace.shared.open(url)
+        return ok("mac", message)
+    }
+
+    private static func saveContact(text: String, content: String?, filename: String?) -> [String: Any] {
+        let vcard = content?.contains("BEGIN:VCARD") == true ? content! : ""
+        guard !vcard.isEmpty || !text.isEmpty else {
+            return ["ok": false, "error": "empty"]
+        }
+        let body = vcard.isEmpty ? "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:\(firstLine(text, 60))\r\nEND:VCARD\r\n" : vcard
+        try? FileManager.default.createDirectory(at: AppSettings.dataDirectory, withIntermediateDirectories: true)
+        let name = safeFilename(filename) ?? "pastepilot-contact.vcf"
+        let file = uniqueFile(in: AppSettings.dataDirectory, name: name)
+        do {
+            try body.write(to: file, atomically: true, encoding: .utf8)
+        } catch {
+            return ["ok": false, "error": "mac_failed"]
+        }
+        NSWorkspace.shared.open(file)
+        return ok("mac", "Opened a vCard stub. Nothing was sent.")
     }
 
     // MARK: - Safety
@@ -270,6 +437,45 @@ enum MacActions {
         name.range(of: #"^[A-Za-z0-9][A-Za-z0-9 ._'-]{0,79}$"#, options: .regularExpression) != nil
     }
 
+    private static func safeFilename(_ raw: String?) -> String? {
+        guard var name = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+            return nil
+        }
+        name = (name as NSString).lastPathComponent
+        if name.contains("..") { return nil }
+        if name.rangeOfCharacter(from: unsafeCharacters) != nil { return nil }
+        if name.count > 80 { return nil }
+        if name.range(of: #"^[A-Za-z0-9._-]+$"#, options: .regularExpression) == nil { return nil }
+        return name
+    }
+
+    private static func uniqueFile(in folder: URL, name: String) -> URL {
+        var candidate = folder.appendingPathComponent(name)
+        if !FileManager.default.fileExists(atPath: candidate.path) {
+            return candidate
+        }
+        let ns = name as NSString
+        let stem = ns.deletingPathExtension
+        let ext = ns.pathExtension
+        var index = 2
+        repeat {
+            let next = ext.isEmpty ? "\(stem)-\(index)" : "\(stem)-\(index).\(ext)"
+            candidate = folder.appendingPathComponent(next)
+            index += 1
+        } while FileManager.default.fileExists(atPath: candidate.path) && index < 100
+        return candidate
+    }
+
+    private static func isDirectory(_ url: URL) -> Bool {
+        var isDir: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) && isDir.boolValue
+    }
+
+    private static func firstLine(_ value: String, _ max: Int) -> String {
+        let line = value.split(whereSeparator: \.isNewline).first.map(String.init) ?? value
+        return collapsed(line, max)
+    }
+
     private static func appleString(_ value: String) -> String {
         value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
     }
@@ -278,6 +484,11 @@ enum MacActions {
         let flat = value.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
         if flat.count <= max { return flat }
         return String(flat.prefix(max - 1)) + "…"
+    }
+
+    private static func unique(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.filter { seen.insert($0).inserted }
     }
 
     private static func runAppleScript(_ source: String) -> Bool {

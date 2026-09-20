@@ -330,6 +330,81 @@
         "action_id": "capture_task"
       },
       "notes": "Tasks still prefer Save as task; Add reminder is a companion."
+    },
+    {
+      "id": "email",
+      "input": "ada@example.com",
+      "state": {},
+      "available_actions": [
+        "draft_email",
+        "save_note",
+        "search_web"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "draft_email"
+      },
+      "notes": "A bare email steals Draft email after any provider."
+    },
+    {
+      "id": "phone",
+      "input": "+1 415 555 2671",
+      "state": {},
+      "available_actions": [
+        "call_phone",
+        "message_phone",
+        "save_contact"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "call_phone"
+      },
+      "notes": "A phone number steals Call / Message / Save contact."
+    },
+    {
+      "id": "address",
+      "input": "221B Baker Street, London",
+      "state": {},
+      "available_actions": [
+        "open_maps",
+        "search_web",
+        "copy_to_clipboard"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "open_maps"
+      },
+      "notes": "A postal address steals Open in Maps."
+    },
+    {
+      "id": "code",
+      "input": "function greet() {\n  return 1;\n}",
+      "state": {},
+      "available_actions": [
+        "save_code_snippet",
+        "open_in_editor",
+        "copy_to_clipboard"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "save_code_snippet"
+      },
+      "notes": "Code-looking paste steals Save code / Open in editor."
+    },
+    {
+      "id": "iso-meeting",
+      "input": "Standup 2026-09-20 at 15:00",
+      "state": {},
+      "available_actions": [
+        "open_in_calendar",
+        "add_reminder",
+        "capture_task"
+      ],
+      "expected": {
+        "status": "select",
+        "action_id": "open_in_calendar"
+      },
+      "notes": "ISO date plus a clock steals Calendar. Confirm still only writes an .ics draft."
     }
   ]
 }

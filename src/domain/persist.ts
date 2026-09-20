@@ -216,6 +216,8 @@ export async function persistMacAction(args: {
   path?: string;
   query?: string;
   content?: string;
+  filename?: string;
+  folder?: string;
 }): Promise<MacPersistResult> {
   if (!isMacActionTool(args.toolId)) {
     return { ok: false, used: "fallback", message: "That tool is not a Mac action.", reason: "mac_failed" };
@@ -227,6 +229,8 @@ export async function persistMacAction(args: {
     path: args.path,
     query: args.query,
     content: args.content,
+    filename: args.filename,
+    folder: args.folder,
   };
 
   const native = nativeMacBridge();

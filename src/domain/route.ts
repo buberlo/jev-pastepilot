@@ -3,7 +3,7 @@ import { applyConfidenceGate, confidenceBand } from "./decisionLayer";
 import { logOperational } from "./log";
 import { suggestionFromId } from "./mockProvider";
 import { parseFacts } from "./parsers";
-import { applyPathSteal, preRankCandidates } from "./pathSteal";
+import { applySignalSteal, preRankCandidates } from "./signalSteal";
 import {
   createProvider,
   isProviderId,
@@ -122,7 +122,7 @@ export async function routePaste(input: string, options: RouteOptions = {}): Pro
         issue: checked.issue,
         elapsedMs: Date.now() - started,
       });
-      const stolen = applyPathSteal(input, offered, {
+      const stolen = applySignalSteal(input, offered, {
         status: "failed",
         primaryActionId: null,
         suggestionIds: [],
@@ -175,7 +175,7 @@ export async function routePaste(input: string, options: RouteOptions = {}): Pro
           ? clarifySuggestions(offered)
           : [];
 
-    const stolen = applyPathSteal(input, offered, {
+    const stolen = applySignalSteal(input, offered, {
       status: decision.status,
       primaryActionId: primary,
       suggestionIds,
@@ -230,7 +230,7 @@ export async function routePaste(input: string, options: RouteOptions = {}): Pro
         elapsedMs: Date.now() - started,
       },
     );
-    const stolen = applyPathSteal(input, offered, {
+    const stolen = applySignalSteal(input, offered, {
       status: "failed",
       primaryActionId: null,
       suggestionIds: [],
