@@ -195,6 +195,8 @@ export default function App() {
         path: gated.effect.path,
         query: gated.effect.query,
         content: gated.effect.fallback?.content,
+        filename: gated.effect.filename,
+        folder: gated.effect.folder,
       });
       if (!mac.ok) {
         setResult({
@@ -346,9 +348,9 @@ export default function App() {
   const emptyCopy =
     outcome?.status === "failed"
       ? outcome.failure === "timeout"
-        ? "Couldn't decide in time."
-        : "Couldn't decide."
-      : "Nothing fitting.";
+        ? "Couldn't decide in time. Your text is still here — pick a safe tool."
+        : "Couldn't decide. Your text is still here — pick a safe tool."
+      : "Nothing fitting this paste. Pick a safe local tool, or try a clearer snippet.";
 
   return (
     <main className="page">
@@ -379,6 +381,9 @@ export default function App() {
 
       {showSuggestions ? (
         <section className="results" aria-label="Suggested actions">
+          {outcome.status === "clarify" ? (
+            <p className="hint">Not sure which one. Pick an action — nothing runs until Confirm.</p>
+          ) : null}
           {outcome.suggestions.map((suggestion) => (
             <button
               key={suggestion.toolId}
@@ -397,7 +402,7 @@ export default function App() {
           <p>{emptyCopy}</p>
           {outcome.fallbackTools.length > 0 ? (
             <div className="fallback-list">
-              <p>Pick a safe tool instead:</p>
+              <p>Nothing ran. Pick a safe tool:</p>
               {outcome.fallbackTools.map((tool) => (
                 <button
                   key={tool.toolId}

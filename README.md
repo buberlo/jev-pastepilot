@@ -94,7 +94,8 @@ Confirm is required. After the execution gate:
 | Action | What Confirm does |
 | --- | --- |
 | **Open link / GitHub** | Opens the first parsed `http`/`https` URL (GitHub hosts only for **Open GitHub**). Other schemes and URLs with passwords are blocked. |
-| **Search the web / docs / error / Stack Overflow / Wikipedia / maps** | Opens an `http(s)` search or maps URL (DuckDuckGo, Stack Overflow, Wikipedia, Google Maps). |
+| **Search the web / docs / error / Stack Overflow / Wikipedia** | Opens an `http(s)` search URL (DuckDuckGo, Stack Overflow, Wikipedia). |
+| **Open in Maps** | On Mac, Confirm opens Apple Maps (`maps:`). Elsewhere Google Maps. |
 | **Draft email** | Opens a `mailto:` draft. Nothing is sent. |
 | **Draft event** | Downloads an `.ics` draft (or writes it under the local data dir). Nothing is scheduled. |
 | **Copy text / Draft message / Extract links** | Copies text or parsed links after Confirm. |
@@ -103,16 +104,19 @@ Confirm is required. After the execution gate:
 | **Open in Notes / Add reminder** | On Mac, Confirm creates an Apple Notes or Reminders draft in **Swift** (Automation prompt if needed). Web/Linux save a local note or task instead. |
 | **Open in Calendar** | On Mac, Confirm writes an `.ics` draft and opens it with NSWorkspace. Elsewhere it downloads the draft. Nothing is scheduled. |
 | **Open in Safari / Chrome** | On Mac, Confirm opens the parsed http(s) link in that app via NSWorkspace. Elsewhere the default browser is used. |
-| **Open in Finder / Open in Terminal** | Paste `/Users/…` or `~/Desktop` and those two buttons appear (even with live Jev). On Mac, Confirm uses NSWorkspace — not Node `osascript`. The paste is **never** a shell command. Labeled stubs on web/Linux. |
+| **Open in Finder / Open in Terminal / Open enclosing folder / Copy POSIX path** | Paste `/Users/…` or `~/Desktop` and Finder + Terminal appear (even with live Jev). Enclosing folder opens the parent. On Mac, Confirm uses NSWorkspace — not Node `osascript`. The paste is **never** a shell command. Labeled stubs on web/Linux. |
+| **Open in editor / Open in Preview** | Preferred editor (Cursor / VS Code / TextEdit) from Settings. Preview is for a pasted PDF or image path. Missing apps fall back. |
+| **Save to Desktop / Downloads · Reveal Desktop / Downloads / Documents** | Writes a **new** `.txt`/`.md` (never overwrites) or opens that folder in Finder. Web/Linux download or show a labeled stub. |
+| **Call number / Message number / Save contact** | `tel:` / `sms:` / a vCard stub from a parsed phone. Nothing is dialed or sent until you confirm in Phone/Messages. |
 | **Look up word / Spotlight search** | Dictionary via `dict://` on Mac (Wiktionary on the web). Spotlight copies the query and tries ⌘Space on Mac. |
-| **Run Shortcut / Speak text / Share text** | Shortcut name comes from Settings (`PASTEPILOT_SHORTCUT_NAME`), never the API key. `say` is Mac-only. Share copies and notifies. |
+| **Run Shortcut / Speak text / Share text** | Shortcut name comes from Settings (`PASTEPILOT_SHORTCUT_NAME`), never the API key. `say` is Mac-only. Share opens the Mac share sheet (copy elsewhere). |
 | **Screen paste** | Local injection/substance summary. Nothing is sent or written. |
 
-The allowlist is the previous two-dozen tools plus these Mac actions. The UI still shows **at most three** buttons. Confirm never sends email, writes a calendar, runs a pasted shell line, or puts `TYPESAFE_API_KEY` on a URL.
+The allowlist is larger than the three buttons. The UI still shows **at most three**. Confirm never sends email, writes a calendar, runs a pasted shell line, or puts `TYPESAFE_API_KEY` on a URL.
 
-**Catalogue (Jev Choice labels):** Open link, Search the web, Search docs, Search Wikipedia, Search this error, Search Stack Overflow, Open log viewer, Open maps, Open GitHub, Draft email, Draft message, Draft event, Copy text, Extract links, Format JSON, Save for later, Save as task, Save idea, Save note, Save markdown, Save code, Save quote, Save link, Save checklist, Open in Notes, Add reminder, Open in Calendar, Open in Finder, Open in Safari, Open in Chrome, Look up word, Spotlight search, Open in Terminal, Run Shortcut, Speak text, Share text, Screen paste.
+**Catalogue (Jev Choice labels):** Open link, Search the web, Search docs, Search Wikipedia, Search this error, Search Stack Overflow, Open log viewer, Open in Maps, Open GitHub, Draft email, Draft message, Draft event, Copy text, Extract links, Format JSON, Save for later, Save as task, Save idea, Save note, Save markdown, Save code, Save quote, Save link, Save checklist, Open in Notes, Add reminder, Open in Calendar, Open in Finder, Open in Safari, Open in Chrome, Look up word, Spotlight search, Open in Terminal, Run Shortcut, Speak text, Share text, Open in editor, Save to Desktop, Save to Downloads, Reveal Downloads, Reveal Desktop, Reveal Documents, Open in Preview, Call number, Message number, Copy POSIX path, Open enclosing folder, Save contact, Screen paste.
 
-**Path paste example.** Paste `/Users/konrad/` or `~/Desktop`. You should see **Open in Finder** and **Open in Terminal**. Confirm is still required. A local steal ranks those buttons even when the live Jev provider would have picked something else.
+**Strong-signal steal.** After any provider — including live Jev — a clear paste is re-ranked: path → Finder; http(s) → Open link / Safari / Chrome; email → Draft email; phone → Call / Message; address → Maps; JSON → Format JSON; code → Save code / Open in editor; a dictionary word → Look up; an ISO date plus a clock → Calendar. Confirm is still required.
 
 ## Decision layer (optional live Jev)
 
@@ -162,7 +166,7 @@ Details: [macos/README.md](macos/README.md).
 | **MS3** — live Jev adapter (server-side, fail-open; mock still default) | Done |
 | **Confirm tools** — open http(s)/mailto/maps search; save locally; copy; download `.ics`/`.md`/`.json` | Done |
 | **Mac Confirm tools** — native Swift Confirm (NSWorkspace / NSAppleScript / `say`); Finder+Terminal on path paste; stubs on web/Linux | Done |
-| **Mac Settings** — SwiftUI Settings + Keychain (`⌘,`); optional preferred browser + Shortcut name | Done |
+| **Mac Settings** — SwiftUI Settings + Keychain (`⌘,`); preferred browser, preferred editor, Shortcut name | Done |
 | **Mac v1** — in-app UI (WKWebView) + bundled local server + Services → app window | Done (ad-hoc, not notarized) |
 | **Release CI** — every `main` push rebuilds unsigned [`mac-latest`](https://github.com/buberlo/jev-pastepilot/releases/tag/mac-latest) | Done |
 | **Next** — notarized / Developer ID Mac `.app`, Windows share / tray | North-star |
@@ -192,7 +196,7 @@ See [docs/MVP.md](docs/MVP.md).
 
 | Command | What it covers |
 | --- | --- |
-| `npm test` | Parsers, routing, path steal, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, Confirm adapters, Mac actions (native bridge + osascript fallback mocked), local save/export, UI smoke |
+| `npm test` | Parsers, routing, path/URL/email/phone steals, failure paths, decision-layer gates, Jev adapter fixtures, share ingest, URL allowlist, Confirm adapters, Mac actions (native bridge + osascript fallback mocked), local save/export, UI smoke |
 | `python3 scripts/validate_scaffold.py` | Fixture structure, documentation links, SDK stays server-side, Mac workflow only |
 | GitHub Actions `Mac release` | Bundles the Vite UI + Node server, builds `macos/PastePilotService` on `macos-latest`, publishes `PastePilot-mac.zip` |
 

@@ -4,8 +4,12 @@ import {
   looksLikeAddress,
   looksLikeCode,
   looksLikeDictionaryWord,
+  looksLikeEmailPaste,
   looksLikeFilePath,
   looksLikeJson,
+  looksLikePhonePaste,
+  looksLikePreviewPath,
+  looksLikeUrlPaste,
 } from "./signals";
 import {
   MAX_SUGGESTIONS,
@@ -51,6 +55,18 @@ const COMPANION_TOOLS: Partial<Record<ToolId, readonly ToolId[]>> = {
   run_shortcut: ["run_shortcut", "save_note", "copy_to_clipboard"],
   speak_text: ["speak_text", "share_text", "save_note"],
   share_text: ["share_text", "copy_to_clipboard", "save_note"],
+  open_in_editor: ["open_in_editor", "save_code_snippet", "copy_to_clipboard"],
+  save_to_desktop: ["save_to_desktop", "save_to_downloads", "save_note"],
+  save_to_downloads: ["save_to_downloads", "save_to_desktop", "save_note"],
+  reveal_downloads: ["reveal_downloads", "reveal_desktop", "reveal_documents"],
+  reveal_desktop: ["reveal_desktop", "reveal_downloads", "reveal_documents"],
+  reveal_documents: ["reveal_documents", "reveal_downloads", "reveal_desktop"],
+  open_in_preview: ["open_in_preview", "reveal_in_finder", "open_enclosing_folder"],
+  call_phone: ["call_phone", "message_phone", "save_contact"],
+  message_phone: ["message_phone", "call_phone", "save_contact"],
+  copy_posix_path: ["copy_posix_path", "reveal_in_finder", "open_enclosing_folder"],
+  open_enclosing_folder: ["open_enclosing_folder", "reveal_in_finder", "copy_posix_path"],
+  save_contact: ["save_contact", "call_phone", "draft_email"],
   screen_paste: ["screen_paste", "save_note", "copy_to_clipboard"],
 };
 
@@ -99,8 +115,8 @@ export const TOOLS: Record<ToolId, ToolDefinition> = {
   },
   open_maps: {
     id: "open_maps",
-    label: "Open maps",
-    description: "Open a maps search for the pasted address or text after Confirm.",
+    label: "Open in Maps",
+    description: "Open the pasted address in Apple Maps after Confirm. Web uses Google Maps.",
     safeFallback: false,
   },
   open_github: {
@@ -268,7 +284,79 @@ export const TOOLS: Record<ToolId, ToolDefinition> = {
   share_text: {
     id: "share_text",
     label: "Share text",
-    description: "Copy the paste and notify after Confirm. Mac may show a notification; no silent send.",
+    description: "Open the Mac share sheet after Confirm. Elsewhere the text is copied. Nothing is sent.",
+    safeFallback: false,
+  },
+  open_in_editor: {
+    id: "open_in_editor",
+    label: "Open in editor",
+    description: "Open a pasted path or a temp file in Cursor, VS Code, or TextEdit after Confirm.",
+    safeFallback: false,
+  },
+  save_to_desktop: {
+    id: "save_to_desktop",
+    label: "Save to Desktop",
+    description: "Write a .txt or .md file on the Desktop after Confirm. Never overwrites an existing file.",
+    safeFallback: false,
+  },
+  save_to_downloads: {
+    id: "save_to_downloads",
+    label: "Save to Downloads",
+    description: "Write a .txt or .md file in Downloads after Confirm. Never overwrites an existing file.",
+    safeFallback: false,
+  },
+  reveal_downloads: {
+    id: "reveal_downloads",
+    label: "Reveal Downloads",
+    description: "Open the Downloads folder in Finder after Confirm. Mac only.",
+    safeFallback: false,
+  },
+  reveal_desktop: {
+    id: "reveal_desktop",
+    label: "Reveal Desktop",
+    description: "Open the Desktop folder in Finder after Confirm. Mac only.",
+    safeFallback: false,
+  },
+  reveal_documents: {
+    id: "reveal_documents",
+    label: "Reveal Documents",
+    description: "Open the Documents folder in Finder after Confirm. Mac only.",
+    safeFallback: false,
+  },
+  open_in_preview: {
+    id: "open_in_preview",
+    label: "Open in Preview",
+    description: "Open a pasted PDF or image path in Preview after Confirm. Mac only.",
+    safeFallback: false,
+  },
+  call_phone: {
+    id: "call_phone",
+    label: "Call number",
+    description: "Open a tel: link for the parsed phone number after Confirm. Nothing is dialed until you confirm in Phone.",
+    safeFallback: false,
+  },
+  message_phone: {
+    id: "message_phone",
+    label: "Message number",
+    description: "Open an sms: draft for the parsed phone number after Confirm. Nothing is sent.",
+    safeFallback: false,
+  },
+  copy_posix_path: {
+    id: "copy_posix_path",
+    label: "Copy POSIX path",
+    description: "Copy the pasted absolute or home path after Confirm.",
+    safeFallback: false,
+  },
+  open_enclosing_folder: {
+    id: "open_enclosing_folder",
+    label: "Open enclosing folder",
+    description: "Open the folder that contains a pasted file after Confirm. Distinct from revealing the file.",
+    safeFallback: false,
+  },
+  save_contact: {
+    id: "save_contact",
+    label: "Save contact",
+    description: "Save a vCard stub from a parsed phone or email after Confirm. Nothing is sent.",
     safeFallback: false,
   },
   screen_paste: {
@@ -332,20 +420,34 @@ export function preferredTools(kind: ContentKind, input: string, parsed: ParsedF
   if (firstGithubUrl(parsed.urls)) {
     extras.push("open_github", "open_url", "save_link");
   }
+  if (looksLikeUrlPaste(input) || (parsed.urls.length > 0 && kind === "url")) {
+    extras.push("open_url", "open_in_safari", "open_in_chrome");
+  }
   if (looksLikeAddress(input) && kind === "ordinary") {
     extras.push("open_maps", "search_web", "copy_to_clipboard");
   }
-  if (parsed.emails.length > 0 && kind === "ordinary") {
-    extras.push("draft_email", "draft_message", "save_note");
+  if ((parsed.emails.length > 0 || looksLikeEmailPaste(input)) && kind === "ordinary") {
+    extras.push("draft_email", "copy_to_clipboard", "save_note");
+  }
+  if (looksLikePhonePaste(input) || parsed.phones.length > 0) {
+    extras.push("call_phone", "message_phone", "save_contact");
   }
   if (looksLikeCode(input) && (kind === "ordinary" || kind === "idea")) {
-    extras.push("save_code_snippet", "copy_to_clipboard", "save_note");
+    extras.push("save_code_snippet", "open_in_editor", "copy_to_clipboard");
   }
   if (looksLikeFilePath(input) && kind === "ordinary") {
-    extras.push("reveal_in_finder", "open_in_terminal", "save_note");
+    extras.push(
+      "reveal_in_finder",
+      looksLikePreviewPath(input) ? "open_in_preview" : "open_in_terminal",
+      looksLikePreviewPath(input) ? "open_enclosing_folder" : "save_note",
+    );
   }
   if (looksLikeDictionaryWord(input) && kind === "ordinary") {
     extras.push("dictionary_lookup", "spotlight_search", "search_web");
+  }
+  const hasIso = parsed.dateHints.some((hint) => /^\d{4}-\d{2}-\d{2}$/.test(hint));
+  if (hasIso && parsed.times.length > 0) {
+    extras.push("open_in_calendar", "add_reminder", "capture_task");
   }
   return uniqueIds([...extras, ...KIND_TOOLS[kind]]);
 }

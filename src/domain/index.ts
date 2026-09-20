@@ -15,6 +15,7 @@ export { isMacActionTool, MAC_ACTION_TOOLS } from "./macActions";
 export { allowlistedHttpUrl, firstAllowlistedUrl } from "./openUrl";
 export { parseFacts } from "./parsers";
 export { applyPathSteal, shouldStealPath } from "./pathSteal";
+export { applySignalSteal, detectSteal } from "./signalSteal";
 export {
   copyConfirmedText,
   nativeMacBridge,

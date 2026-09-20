@@ -26,7 +26,13 @@ describe("exact local parsers", () => {
     const facts = parseFacts("please send this to ada@example.com tomorrow");
     expect(facts.emails).toEqual(["ada@example.com"]);
     expect(facts.dateHints.map((hint) => hint.toLowerCase())).toContain("tomorrow");
-    expect(Object.keys(facts).sort()).toEqual(["dateHints", "emails", "times", "urls"]);
+    expect(Object.keys(facts).sort()).toEqual(["dateHints", "emails", "phones", "times", "urls"]);
+  });
+
+  it("extracts phone numbers without granting a call or send", () => {
+    expect(parseFacts("+1 415 555 2671").phones).toEqual(["+1 415 555 2671"]);
+    expect(parseFacts("(415) 555-2671").phones[0]).toMatch(/415/);
+    expect(parseFacts("Meet 2026-09-20 at 15:00").phones).toEqual([]);
   });
 
   it("returns empty collections for ordinary text with no exact tokens", () => {
@@ -35,6 +41,7 @@ describe("exact local parsers", () => {
       dateHints: [],
       times: [],
       emails: [],
+      phones: [],
     });
   });
 });

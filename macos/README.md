@@ -46,7 +46,7 @@ Do not expect a signed or notarized binary. There are no signing secrets in this
 | --- | --- |
 | WKWebView main window | The same PastePilot UI as the web prototype |
 | Bundled Node + `server.mjs` | Localhost-only server: static UI, `POST /api/decide`, `POST /api/save`, `POST /api/export`, `POST /api/mac`, `/share` |
-| Settings (`⌘,`) | Keychain API key, provider, model, preferred browser, optional Shortcut name |
+| Settings (`⌘,`) | Keychain API key, provider, model, preferred browser, preferred editor, optional Shortcut name |
 | Services + `pastepilot://ingest` | Open/focus the app window with `?text=` |
 
 The zip contains an official Node binary and a production Vite build. It does not contain `TYPESAFE_API_KEY`, `.env`, or signing secrets.
@@ -62,6 +62,7 @@ Fields:
 - **Provider** — `mock` | `local` | `jev`. Same suite. The main window adds `?provider=` when you chose `jev` or `local`.
 - **Server URL** — used by the CLI share helper only. The app window always uses the bundled localhost server (`127.0.0.1`, default port `18763`).
 - **Preferred browser** — `default` | `safari` | `chrome`. Used by **Open in Safari** / **Open in Chrome** after Confirm. Never put on a URL.
+- **Preferred editor** — `cursor` | `vscode` | `textedit`. Used by **Open in editor** after Confirm. Missing apps fall back to TextEdit. Never put on a URL.
 - **Shortcut** — optional name for **Run Shortcut** (`shortcuts://run-shortcut?name=`). The API key is never added.
 
 ## Mac Confirm tools (native Swift)
@@ -84,7 +85,15 @@ Invoked only after Confirm. In `PastePilot.app`, the WKWebView posts to `webkit.
 | **Open in Terminal** | NSWorkspace opens Terminal **at a path**. **Never** runs the paste as a command | Labeled stub |
 | **Run Shortcut** | `shortcuts://run-shortcut?name=` from Settings | Labeled stub |
 | **Speak text** | `NSSpeechSynthesizer` | Labeled stub |
-| **Share text** | Copy + notification | Copy |
+| **Share text** | `NSSharingServicePicker` share sheet | Copy |
+| **Open in Maps** | `maps:?q=` via NSWorkspace | Google Maps in the browser |
+| **Open in editor** | NSWorkspace + preferred editor bundle id (Cursor / VS Code / TextEdit) | Download a local file |
+| **Save to Desktop / Downloads** | Write a new `.txt`/`.md` (never overwrite) and reveal it | Download |
+| **Reveal Desktop / Downloads / Documents** | Finder on that folder | Labeled stub |
+| **Open in Preview** | Preview.app for a pasted PDF/image path | Labeled stub |
+| **Call / Message** | `tel:` / `sms:` via NSWorkspace | Same URL in this browser |
+| **Open enclosing folder** | Open the parent folder | Labeled stub |
+| **Save contact** | Write a `.vcf` and open it | Download the vCard |
 | **Screen paste** | Local injection/substance summary (any OS) | Same |
 
 ### Permissions

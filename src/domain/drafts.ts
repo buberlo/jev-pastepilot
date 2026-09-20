@@ -41,6 +41,36 @@ export function buildMailtoUrl(input: string, parsed: ParsedFacts): string | nul
   return allowlistedMailtoUrl(url);
 }
 
+/** tel: or sms: draft. Never places a call or sends a message. */
+export function buildPhoneHref(scheme: "tel" | "sms", phone: string): string | null {
+  const digits = phone.replace(/[^\d+]/g, "");
+  if (digits.replace(/\D/g, "").length < 10 || digits.length > 20) {
+    return null;
+  }
+  return `${scheme}:${digits}`;
+}
+
+/** Minimal vCard. Confirm never writes Contacts itself on web/Linux. */
+export function buildVcard(input: string, parsed: ParsedFacts): string | null {
+  const phone = parsed.phones[0] ?? "";
+  const email = parsed.emails[0] ?? "";
+  const text = input.trim();
+  if (!phone && !email && !text) {
+    return null;
+  }
+  const name = collapsedText(text, 60).replace(/…$/, "") || phone || email || "PastePilot contact";
+  const lines = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `FN:${name.replace(/[\r\n;]/g, " ")}`,
+    phone ? `TEL:${phone.replace(/[\r\n;]/g, "")}` : "",
+    email ? `EMAIL:${email}` : "",
+    "END:VCARD",
+    "",
+  ];
+  return lines.filter((line, index) => line !== "" || index === lines.length - 1).join("\r\n");
+}
+
 export function allowlistedMailtoUrl(raw: string): string | null {
   if (typeof raw !== "string") {
     return null;

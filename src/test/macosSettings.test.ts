@@ -28,6 +28,7 @@ describe("Mac Settings source", () => {
     expect(view).toContain("SecureField");
     expect(view).toContain("SettingsView");
     expect(view).toContain("preferredBrowser");
+    expect(view).toContain("preferredEditor");
     expect(view).toContain("shortcutName");
     expect(view).toContain("shortcuts://run-shortcut");
     expect(app).toContain("WindowGroup(\"PastePilot\")");
@@ -39,7 +40,13 @@ describe("Mac Settings source", () => {
     expect(web).toContain("mailto");
     expect(web).toContain("dict");
     expect(web).toContain("shortcuts");
+    expect(web).toContain("tel");
+    expect(web).toContain("sms");
+    expect(web).toContain("maps");
     expect(actions).toContain("NSWorkspace");
+    expect(actions).toContain("NSSharingServicePicker");
+    expect(actions).toContain("com.apple.Preview");
+    expect(actions).toContain("com.todesktop.230313mzl4w4u92");
     expect(actions).toContain("NSAppleScript");
     expect(actions).toContain("NSSpeechSynthesizer");
     expect(actions).toContain("safeFileURL");
@@ -49,8 +56,11 @@ describe("Mac Settings source", () => {
     expect(build).toContain("MacActions.swift");
     expect(pkg).toContain("MacActions.swift");
     expect(settings).toContain("preferredBrowser");
+    expect(settings).toContain("preferredEditor");
+    expect(settings).toContain("preferredEditorBundleId");
     expect(settings).toContain("shortcutName");
     expect(server).toContain("PASTEPILOT_PREFERRED_BROWSER");
+    expect(server).toContain("PASTEPILOT_PREFERRED_EDITOR");
     expect(server).toContain("PASTEPILOT_SHORTCUT_NAME");
     expect(server).toContain("PASTEPILOT_NATIVE_MAC");
     expect(server).toContain("TYPESAFE_API_KEY");
@@ -75,6 +85,7 @@ describe("Mac Settings source", () => {
     const html = await readFile(preview, "utf8");
     expect(html).toContain("PastePilot Settings");
     expect(html).toContain("Preferred browser");
+    expect(html).toContain("Preferred editor");
     expect(html).toContain("Shortcut");
     expect(html).toContain("local.pastepilot.typesafe");
     expect(html).toContain("Layout preview");

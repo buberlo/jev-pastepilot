@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var provider = AppSettings.provider
     @State private var serverURL = AppSettings.serverURL
     @State private var preferredBrowser = AppSettings.preferredBrowser
+    @State private var preferredEditor = AppSettings.preferredEditor
     @State private var shortcutName = AppSettings.shortcutName
     @State private var status = "The main window is PastePilot. Confirm is required. The key is never put on a URL."
 
@@ -73,6 +74,20 @@ struct SettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    LabeledContent("Preferred editor") {
+                        Picker("Preferred editor", selection: $preferredEditor) {
+                            Text("Cursor").tag("cursor")
+                            Text("VS Code").tag("vscode")
+                            Text("TextEdit").tag("textedit")
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(minWidth: 240)
+                    }
+                    Text("Used by Open in editor after Confirm. Missing apps fall back to TextEdit. Never put on a URL.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     LabeledContent("Shortcut") {
                         TextField("Optional Shortcuts name", text: $shortcutName)
                             .textFieldStyle(.roundedBorder)
@@ -99,7 +114,7 @@ struct SettingsView: View {
                 .textSelection(.enabled)
         }
         .padding(20)
-        .frame(minWidth: 440, minHeight: 580)
+        .frame(minWidth: 440, minHeight: 660)
         .onAppear { keyStored = KeychainStore.hasAPIKey() }
     }
 
@@ -108,6 +123,7 @@ struct SettingsView: View {
         AppSettings.provider = provider
         AppSettings.model = model
         AppSettings.preferredBrowser = preferredBrowser
+        AppSettings.preferredEditor = preferredEditor
         AppSettings.shortcutName = shortcutName
         do {
             if !apiKey.isEmpty {
